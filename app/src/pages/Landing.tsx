@@ -66,7 +66,7 @@ export function Landing() {
                   <Link
                     key={role}
                     to={meta.base}
-                    className="group relative flex flex-col rounded-4xl border border-hair bg-white p-6 shadow-card transition-all duration-200 hover:-translate-y-1 hover:shadow-pop"
+                    className="group relative flex flex-col rounded-4xl border border-hair bg-white p-6 transition-[transform,border-color] duration-200 hover:-translate-y-1 hover:border-forest-200"
                   >
                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-forest text-lime transition-transform duration-200 group-hover:scale-105">
                       <Icon size={22} />
