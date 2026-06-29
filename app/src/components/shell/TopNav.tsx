@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Bell, Check, ChevronDown, ChevronRight, CornerDownLeft, Search } from 'lucide-react'
+import { Bell, Building2, Check, ChevronDown, ChevronRight, CornerDownLeft, LogOut, Palette, Search, Shield, UserRound } from 'lucide-react'
 import { Mark } from '@/components/Logo'
-import { MineralIcon } from '@/components/ui'
+import { Avatar, MineralIcon } from '@/components/ui'
 import { ROLE_META, ROLES, ROLE_NAV, ROLE_TAGLINE } from '@/data/nav'
-import { BUYER_CO, MARKET_LISTINGS, SELLER_CO } from '@/data/mock'
+import { BUYER_CO, CURRENT_USER, MARKET_LISTINGS, SELLER_CO } from '@/data/mock'
 import { useStore } from '@/store/AppStore'
 import type { Role } from '@/data/types'
 import { money } from '@/lib/format'
@@ -303,6 +303,79 @@ function NotificationsBell({ role }: { role: Role }) {
   )
 }
 
+function ProfileMenu({ role }: { role: Role }) {
+  const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
+  const base = ROLE_META[role].base
+
+  const items = [
+    { label: 'Profile', icon: UserRound, section: 'profile' },
+    { label: 'Account', icon: Building2, section: 'account' },
+    { label: 'Notifications', icon: Bell, section: 'notifications' },
+    { label: 'Security', icon: Shield, section: 'security' },
+    { label: 'Appearance', icon: Palette, section: 'appearance' },
+  ]
+
+  const go = (to: string) => {
+    setOpen(false)
+    navigate(to)
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 rounded-full border border-hair bg-white py-1 pl-1 pr-2 transition-colors hover:bg-panel sm:pr-2.5"
+      >
+        <Avatar name={CURRENT_USER.name} size="sm" />
+        <span className="hidden text-sm font-semibold text-forest sm:block">{CURRENT_USER.firstName}</span>
+        <ChevronDown size={15} className="hidden text-forest-300 sm:block" />
+      </button>
+      {open && (
+        <>
+          <CloseLayer onClose={() => setOpen(false)} />
+          <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-72 origin-top-right animate-pop rounded-3xl border border-hair bg-white p-2 shadow-pop">
+            <div className="flex items-center gap-3 px-3 py-2.5">
+              <Avatar name={CURRENT_USER.name} size="md" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-forest">{CURRENT_USER.name}</p>
+                <p className="truncate text-xs text-forest-400">{CURRENT_USER.email}</p>
+              </div>
+            </div>
+            <div className="my-1 border-t border-hair" />
+            {items.map((it) => {
+              const Icon = it.icon
+              return (
+                <button
+                  key={it.section}
+                  onClick={() => go(`${base}/settings?section=${it.section}`)}
+                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-panel"
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-panel text-forest-500">
+                    <Icon size={16} />
+                  </span>
+                  <span className="text-sm font-semibold text-forest">{it.label}</span>
+                  <ChevronRight size={14} className="ml-auto text-forest-300" />
+                </button>
+              )
+            })}
+            <div className="my-1 border-t border-hair" />
+            <button
+              onClick={() => go('/')}
+              className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-rose-soft"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-panel text-rose-ink">
+                <LogOut size={16} />
+              </span>
+              <span className="text-sm font-semibold text-rose-ink">Sign out</span>
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function TopNav({ role }: { role: Role }) {
   return (
     <header className="sticky top-0 z-30 border-b border-hair bg-white/80 backdrop-blur-xl">
@@ -319,15 +392,7 @@ export function TopNav({ role }: { role: Role }) {
 
         <div className="ml-auto flex items-center gap-2 md:ml-0">
           <NotificationsBell role={role} />
-          <button className="flex items-center gap-2 rounded-full border border-hair bg-white py-1 pl-1 pr-3 transition-colors hover:bg-panel">
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold text-forest"
-              style={{ background: 'linear-gradient(140deg,#a6e64d,#34b489)' }}
-            >
-              GX
-            </span>
-            <span className="tnum hidden text-sm font-semibold text-forest sm:block">0x1cf2…9a56</span>
-          </button>
+          <ProfileMenu role={role} />
         </div>
       </div>
     </header>

@@ -60,6 +60,17 @@ function spark(seed: number): number[] {
 // interface (e.g. a buyer placing an order) surface on the counterparty's account.
 export const SELLER_CO = 'Jos Highland Minerals Ltd'
 export const BUYER_CO = 'Atlantic Metals Trading'
+
+/** The signed-in human operating the account (shown in the top-bar profile menu). */
+export const CURRENT_USER = {
+  firstName: 'Tunde',
+  lastName: 'Alabi',
+  name: 'Tunde Alabi',
+  email: 'tunde.alabi@genesysone.africa',
+  phone: '+234 803 555 0142',
+  title: 'Trading Operations Lead',
+  location: 'Lagos, Nigeria',
+}
 export const LAB_CO = 'Geneva Assay Laboratories'
 
 export const COMPANY = {

@@ -4,6 +4,7 @@ import { AppShell } from '@/components/shell/AppShell'
 import { Landing } from '@/pages/Landing'
 import { Login } from '@/pages/Login'
 import { Signup } from '@/pages/Signup'
+import { Settings } from '@/pages/Settings'
 
 import { SellerDashboard } from '@/pages/seller/Dashboard'
 import { SellerInventory } from '@/pages/seller/Inventory'
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="requests" element={<SellerRequests />} />
           <Route path="trades" element={<SellerTrades />} />
           <Route path="qca" element={<SellerQCA />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
 
         <Route path="/buyer" element={<AppShell role="buyer" />}>
@@ -59,6 +61,7 @@ export default function App() {
           <Route path="rfq" element={<BuyerRFQ />} />
           <Route path="trades" element={<BuyerTrades />} />
           <Route path="samples" element={<BuyerSamples />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
 
         <Route path="/lab" element={<AppShell role="lab" />}>
@@ -68,6 +71,7 @@ export default function App() {
           <Route path="history" element={<LabHistory />} />
           <Route path="wallet" element={<LabWallet />} />
           <Route path="notifications" element={<LabNotifications />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
