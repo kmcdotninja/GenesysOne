@@ -1,0 +1,316 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Typography */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ---- GenesysOne brand palette ---- */
+  /* Forest green (primary) — from the logo (#023729).
+     300/400/500 are tuned as HIGH-CONTRAST text tones (dark, slightly
+     desaturated) so secondary copy stays legible on white. */
+  --color-forest-50: #eef6f2;
+  --color-forest-100: #d4ebe1;
+  --color-forest-200: #b8d6cb;
+  --color-forest-300: #566a62; /* muted text / icons  (~5.2:1 on white) */
+  --color-forest-400: #3d4f48; /* secondary text      (~8:1 on white) */
+  --color-forest-500: #1c3d31; /* strong secondary    (~11:1 on white) */
+  --color-forest-600: #093b2a;
+  --color-forest: #023729;
+  --color-forest-800: #022a20;
+  --color-forest-900: #021d16;
+
+  /* Lime accent */
+  --color-lime-50: #f5fce8;
+  --color-lime-100: #eaf8d0;
+  --color-lime-200: #d8f2a8;
+  --color-lime-300: #c4ea7a;
+  --color-lime: #a6e64d;
+  --color-lime-500: #8cd230;
+  --color-lime-600: #6fab22;
+
+  /* Teal (logo secondary) — darkened for AA text contrast on white */
+  --color-teal: #06674c;
+  --color-teal-soft: #d8efe7;
+
+  /* Orange */
+  --color-orange-soft: #ffe7d4;
+  --color-orange: #ff8a3c;
+  --color-orange-600: #c75a12; /* darkened for AA text contrast */
+
+  /* Status helpers */
+  --color-rose-soft: #ffe1e1;
+  --color-rose-ink: #c2362f;
+
+  /* Soft neutrals tuned to the Uniswap reference */
+  --color-canvas: #fbfbfa;
+  --color-panel: #f6f6f4;
+  --color-hair: #ececea;
+
+  /* Shadows — neutral & layered (a 1px ring + soft lift, like Uniswap).
+     Pure-black with low alpha so they read clean on any surface instead of
+     picking up a green tint. */
+  --shadow-card: 0 0 0 1px rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.05),
+    0 2px 6px -2px rgb(0 0 0 / 0.04);
+  --shadow-card-hover: 0 0 0 1px rgb(0 0 0 / 0.06), 0 2px 6px -2px rgb(0 0 0 / 0.07),
+    0 10px 24px -6px rgb(0 0 0 / 0.08);
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px -4px rgb(0 0 0 / 0.07);
+  --shadow-pop: 0 0 0 1px rgb(0 0 0 / 0.04), 0 8px 28px -8px rgb(0 0 0 / 0.16);
+  --shadow-chip: 0 0 0 1px rgb(0 0 0 / 0.05), 0 1px 2px rgb(0 0 0 / 0.04);
+
+  /* Radii */
+  --radius-4xl: 1.75rem;
+  --radius-5xl: 2.25rem;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-forest);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--color-lime);
+    color: var(--color-forest);
+  }
+
+  /* Tighter, more intentional line breaks */
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Tabular figures for money/data tables */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  /* Quiet, slim scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #d9d9d4 transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: #d9d9d4;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: #c4c4be;
+    background-clip: content-box;
+  }
+}
+
+@layer utilities {
+  /* Subtle entrance used across cards/rows */
+  @keyframes gx-rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-rise {
+    animation: gx-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes gx-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.97) translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+  .animate-pop {
+    animation: gx-pop 0.16s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Empty-state illustration motion */
+  @keyframes gx-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-7px);
+    }
+  }
+  @keyframes gx-float-soft {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+  @keyframes gx-twinkle {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: scale(0.85);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes gx-shadow {
+    0%,
+    100% {
+      transform: scaleX(1);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scaleX(0.82);
+      opacity: 0.3;
+    }
+  }
+  .gx-float {
+    animation: gx-float 4s ease-in-out infinite;
+  }
+  .gx-float-soft {
+    animation: gx-float-soft 4.5s ease-in-out infinite;
+  }
+  .gx-twinkle {
+    animation: gx-twinkle 2.4s ease-in-out infinite;
+  }
+  .gx-shadow {
+    animation: gx-shadow 4s ease-in-out infinite;
+    transform-origin: center;
+  }
+
+  /* Toasts (sonner-style spring slide-up from bottom-right) */
+  @keyframes gx-toast-in {
+    0% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.96);
+    }
+    60% {
+      transform: translateY(-2px) scale(1.005);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes gx-toast-out {
+    from {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(12px) scale(0.96);
+    }
+  }
+  .animate-toast-in {
+    animation: gx-toast-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-toast-out {
+    animation: gx-toast-out 0.22s ease-in both;
+  }
+
+  /* Floating side drawer */
+  @keyframes gx-drawer-in {
+    from {
+      transform: translateX(105%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  @keyframes gx-drawer-out {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(105%);
+    }
+  }
+  .animate-drawer-in {
+    animation: gx-drawer-in 0.36s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+  .animate-drawer-out {
+    animation: gx-drawer-out 0.26s cubic-bezier(0.36, 0, 0.66, -0.06) both;
+  }
+  @keyframes gx-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes gx-fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  .animate-fade-in {
+    animation: gx-fade-in 0.32s ease both;
+  }
+  .animate-fade-out {
+    animation: gx-fade-out 0.26s ease both;
+  }
+  @keyframes gx-ping {
+    0% {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+    80%,
+    100% {
+      transform: scale(2.2);
+      opacity: 0;
+    }
+  }
+  .gx-ping {
+    animation: gx-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gx-float,
+    .gx-float-soft,
+    .gx-twinkle,
+    .gx-shadow,
+    .gx-ping,
+    .animate-rise,
+    .animate-pop,
+    .animate-toast-in,
+    .animate-toast-out,
+    .animate-drawer-in,
+    .animate-drawer-out,
+    .animate-fade-in,
+    .animate-fade-out {
+      animation: none !important;
+    }
+  }
+}

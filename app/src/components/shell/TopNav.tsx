@@ -1,0 +1,335 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Bell, Check, ChevronDown, ChevronRight, CornerDownLeft, Search } from 'lucide-react'
+import { Mark } from '@/components/Logo'
+import { MineralIcon } from '@/components/ui'
+import { ROLE_META, ROLES, ROLE_NAV, ROLE_TAGLINE } from '@/data/nav'
+import { BUYER_CO, MARKET_LISTINGS, SELLER_CO } from '@/data/mock'
+import { useStore } from '@/store/AppStore'
+import type { Role } from '@/data/types'
+import { money } from '@/lib/format'
+import { cn } from '@/lib/cn'
+
+function CloseLayer({ onClose }: { onClose: () => void }) {
+  return <button aria-hidden tabIndex={-1} onClick={onClose} className="fixed inset-0 z-40 cursor-default" />
+}
+
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1)
+
+interface SearchResult {
+  id: string
+  label: string
+  sub: string
+  to: string
+  mineral?: string
+  kind: 'page' | 'data'
+}
+
+function useSearchIndex(role: Role): SearchResult[] {
+  const store = useStore()
+  return useMemo(() => {
+    const pages: SearchResult[] = ROLE_NAV[role].map((n) => ({
+      id: `page-${n.to}`,
+      label: n.label,
+      sub: 'Jump to page',
+      to: n.to,
+      kind: 'page',
+    }))
+    const data: SearchResult[] = []
+    const push = (r: SearchResult) => data.push(r)
+
+    if (role === 'seller') {
+      store.inventory.forEach((i) =>
+        push({ id: i.id, label: `${cap(i.mineral)} — inventory`, sub: `${i.available} ${i.unit} · ${i.state}`, to: '/seller/inventory', mineral: i.mineral, kind: 'data' }),
+      )
+      store.listings.forEach((l) =>
+        push({ id: l.id, label: `${cap(l.mineral)} listing`, sub: `${l.status} · ${money(l.priceAmount, l.priceCurrency)}`, to: '/seller/listings', mineral: l.mineral, kind: 'data' }),
+      )
+      store.trades.filter((t) => t.seller === SELLER_CO).forEach((t) =>
+        push({ id: t.id, label: t.orderNumber, sub: `${cap(t.mineral)} · ${t.batchId}`, to: '/seller/trades', mineral: t.mineral, kind: 'data' }),
+      )
+      store.testingRequests.filter((r) => r.requesterRole === 'seller').forEach((r) =>
+        push({ id: r.id, label: r.batchId, sub: `${cap(r.mineral)} test · ${r.status}`, to: '/seller/qca', mineral: r.mineral, kind: 'data' }),
+      )
+    } else if (role === 'buyer') {
+      MARKET_LISTINGS.forEach((m) =>
+        push({ id: m.id, label: `${cap(m.mineral)} — ${m.sellerName}`, sub: `${money(m.priceAmount, m.priceCurrency)} · ${m.state}`, to: '/buyer/marketplace', mineral: m.mineral, kind: 'data' }),
+      )
+      store.rfqs.forEach((r) =>
+        push({ id: r.id, label: `RFQ — ${cap(r.mineral)}`, sub: `${r.seller} · ${r.status}`, to: '/buyer/rfq', mineral: r.mineral, kind: 'data' }),
+      )
+      store.trades.filter((t) => t.buyer === BUYER_CO).forEach((t) =>
+        push({ id: t.id, label: t.orderNumber, sub: `${cap(t.mineral)} · ${t.batchId}`, to: '/buyer/trades', mineral: t.mineral, kind: 'data' }),
+      )
+      store.sampleRequests.forEach((s) =>
+        push({ id: s.id, label: `${cap(s.mineral)} sample`, sub: `${s.seller} · ${s.status}`, to: '/buyer/samples', mineral: s.mineral, kind: 'data' }),
+      )
+    } else {
+      store.testingRequests.forEach((r) =>
+        push({ id: r.id, label: r.batchId, sub: `${cap(r.mineral)} · ${r.status}`, to: '/lab/requests', mineral: r.mineral, kind: 'data' }),
+      )
+      store.testResults.forEach((r) =>
+        push({ id: r.id, label: r.batchId, sub: `${cap(r.mineral)} result · ${r.status}`, to: '/lab/history', mineral: r.mineral, kind: 'data' }),
+      )
+    }
+    return [...pages, ...data]
+  }, [role, store])
+}
+
+function GlobalSearch({ role }: { role: Role }) {
+  const index = useSearchIndex(role)
+  const navigate = useNavigate()
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = document.activeElement
+      const typing = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+      if (e.key === '/' && !typing) {
+        e.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return index.filter((r) => r.kind === 'page').slice(0, 5)
+    return index
+      .filter((r) => `${r.label} ${r.sub}`.toLowerCase().includes(q))
+      .slice(0, 8)
+  }, [query, index])
+
+  const go = (to: string) => {
+    setOpen(false)
+    setQuery('')
+    inputRef.current?.blur()
+    navigate(to)
+  }
+
+  return (
+    <div className="relative mx-auto hidden w-full max-w-xl md:block">
+      <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-forest-300" />
+      <input
+        ref={inputRef}
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value)
+          setOpen(true)
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && results[0]) go(results[0].to)
+          if (e.key === 'Escape') {
+            setOpen(false)
+            inputRef.current?.blur()
+          }
+        }}
+        placeholder="Search minerals, batches, orders…"
+        className="h-11 w-full rounded-2xl border border-hair bg-panel/70 pl-11 pr-12 text-sm text-forest placeholder:text-forest-300 transition-all focus:border-forest-300 focus:bg-white focus:outline-none focus:ring-4 focus:ring-lime-100"
+      />
+      <kbd className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md border border-hair bg-white px-1.5 py-0.5 text-[11px] font-semibold text-forest-400">
+        /
+      </kbd>
+
+      {open && (
+        <>
+          <CloseLayer onClose={() => setOpen(false)} />
+          <div className="absolute left-0 top-[calc(100%+8px)] z-50 max-h-[60vh] w-full origin-top animate-pop overflow-y-auto rounded-3xl border border-hair bg-white p-2 shadow-pop">
+            {results.length === 0 ? (
+              <div className="px-3 py-6 text-center text-sm text-forest-400">
+                No matches for “{query}”.
+              </div>
+            ) : (
+              results.map((r) => (
+                <button
+                  key={`${r.kind}-${r.id}`}
+                  onClick={() => go(r.to)}
+                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-panel"
+                >
+                  {r.mineral ? (
+                    <MineralIcon mineral={r.mineral} size="sm" />
+                  ) : (
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-panel text-forest-400">
+                      <Search size={14} />
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-forest">{r.label}</span>
+                    <span className="block truncate text-xs text-forest-400">{r.sub}</span>
+                  </span>
+                  {r.kind === 'page' && (
+                    <span className="rounded-md bg-panel px-1.5 py-0.5 text-[10px] font-bold uppercase text-forest-300">
+                      Page
+                    </span>
+                  )}
+                </button>
+              ))
+            )}
+            <div className="mt-1 flex items-center gap-1.5 border-t border-hair px-3 py-2 text-[11px] text-forest-300">
+              <CornerDownLeft size={12} /> to open · <kbd className="rounded border border-hair px-1">esc</kbd> to close
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function RoleSwitcher({ role }: { role: Role }) {
+  const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
+  const meta = ROLE_META[role]
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 rounded-full border border-hair bg-white py-1 pl-1.5 pr-2.5 text-sm font-semibold text-forest transition-colors hover:bg-panel"
+      >
+        <span className="rounded-full bg-lime-100 px-2 py-0.5 text-xs font-bold text-forest-500">{meta.label}</span>
+        <ChevronDown size={15} className="text-forest-300" />
+      </button>
+      {open && (
+        <>
+          <CloseLayer onClose={() => setOpen(false)} />
+          <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-72 origin-top-left animate-pop rounded-3xl border border-hair bg-white p-2 shadow-pop">
+            <p className="px-3 pb-1.5 pt-2 text-[11px] font-bold uppercase tracking-wide text-forest-400">
+              Switch interface
+            </p>
+            {ROLES.map((r) => {
+              const m = ROLE_META[r]
+              const Icon = ROLE_TAGLINE[r].icon
+              const active = r === role
+              return (
+                <button
+                  key={r}
+                  onClick={() => {
+                    setOpen(false)
+                    navigate(m.base)
+                  }}
+                  className={cn(
+                    'flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors',
+                    active ? 'bg-forest-50' : 'hover:bg-panel',
+                  )}
+                >
+                  <span className={cn('flex h-9 w-9 items-center justify-center rounded-xl', active ? 'bg-forest text-lime' : 'bg-panel text-forest-500')}>
+                    <Icon size={17} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-forest">{m.label}</span>
+                    <span className="block truncate text-xs text-forest-400">{m.company}</span>
+                  </span>
+                  {active && <Check size={16} className="text-forest" />}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function NotificationsBell({ role }: { role: Role }) {
+  const { notifications, markNotificationRead, markAllNotificationsRead } = useStore()
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const mine = notifications.filter((n) => n.audience === role)
+  const unread = mine.filter((n) => !n.read).length
+
+  const openNotif = (id: string, link?: string) => {
+    markNotificationRead(id)
+    setOpen(false)
+    if (link) navigate(link)
+  }
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Notifications"
+        className="relative flex h-10 w-10 items-center justify-center rounded-full border border-hair bg-white text-forest-500 transition-colors hover:bg-panel"
+      >
+        <Bell size={18} />
+        {unread > 0 && (
+          <>
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-orange ring-2 ring-white" />
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-orange gx-ping" />
+          </>
+        )}
+      </button>
+      {open && (
+        <>
+          <CloseLayer onClose={() => setOpen(false)} />
+          <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-80 origin-top-right animate-pop rounded-3xl border border-hair bg-white p-2 shadow-pop">
+            <div className="flex items-center justify-between px-3 py-2">
+              <p className="text-sm font-semibold text-forest">Notifications</p>
+              {unread > 0 ? (
+                <button onClick={() => markAllNotificationsRead(role)} className="text-xs font-semibold text-teal hover:underline">
+                  Mark all read
+                </button>
+              ) : (
+                <span className="text-xs text-forest-300">All caught up</span>
+              )}
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {mine.length === 0 ? (
+                <p className="px-3 py-6 text-center text-sm text-forest-400">No notifications yet.</p>
+              ) : (
+                mine.slice(0, 6).map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => openNotif(n.id, n.link)}
+                    className="flex w-full gap-3 rounded-2xl px-3 py-2.5 text-left transition-[background-color,transform] hover:bg-panel active:scale-[0.99]"
+                  >
+                    <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', n.read ? 'bg-hair' : 'bg-orange')} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px] font-semibold text-forest">{n.title}</span>
+                      <span className="block text-xs leading-snug text-forest-400">{n.body}</span>
+                      <span className="mt-0.5 block text-[11px] text-forest-300">{n.time}</span>
+                    </span>
+                    {n.link && <ChevronRight size={14} className="mt-1 shrink-0 text-forest-300" />}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+export function TopNav({ role }: { role: Role }) {
+  return (
+    <header className="sticky top-0 z-30 border-b border-hair bg-white/80 backdrop-blur-xl">
+      <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
+        <div className="flex items-center gap-2.5">
+          <Link to="/" className="flex items-center gap-2 text-forest">
+            <Mark className="h-7 w-7" />
+            <span className="hidden text-[17px] font-bold tracking-[-0.02em] sm:block">GenesysOne</span>
+          </Link>
+          <RoleSwitcher role={role} />
+        </div>
+
+        <GlobalSearch role={role} />
+
+        <div className="ml-auto flex items-center gap-2 md:ml-0">
+          <NotificationsBell role={role} />
+          <button className="flex items-center gap-2 rounded-full border border-hair bg-white py-1 pl-1 pr-3 transition-colors hover:bg-panel">
+            <span
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold text-forest"
+              style={{ background: 'linear-gradient(140deg,#a6e64d,#34b489)' }}
+            >
+              GX
+            </span>
+            <span className="tnum hidden text-sm font-semibold text-forest sm:block">0x1cf2…9a56</span>
+          </button>
+        </div>
+      </div>
+    </header>
+  )
+}
