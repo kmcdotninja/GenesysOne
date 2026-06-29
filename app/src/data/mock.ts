@@ -1,9 +1,13 @@
 import type {
+  ComplianceAgent,
   Director,
   InventoryItem,
   Listing,
   MarketListing,
+  Mineral,
+  MiningSite,
   NotificationItem,
+  Passport,
   RFQ,
   SampleRequest,
   SamplingRequest,
@@ -226,4 +230,166 @@ export const NOTIFICATIONS: NotificationItem[] = [
   { id: 'n8', audience: 'buyer', category: 'sample', title: 'Sample shipped', body: 'Jos Highland Minerals shipped your tin sample via GIG Logistics.', read: false, time: '15m ago', link: '/buyer/samples?focus=sm1' },
   { id: 'n9', audience: 'buyer', category: 'rfq', title: 'Seller responded', body: 'Jos Highland Minerals is negotiating your tin RFQ.', read: false, time: '1h ago', link: '/buyer/rfq?focus=r1' },
   { id: 'n10', audience: 'buyer', category: 'trade', title: 'Escrow funded', body: 'GEN-24755 · lithium · ₦8,400,000 is held in escrow.', read: true, time: '2 days ago', link: '/buyer/trades?order=GEN-24755' },
+  // Compliance
+  { id: 'n11', audience: 'compliance', category: 'passport', title: 'New passport request', body: 'Jos Highland Minerals requested a passport for a columbite batch.', read: false, time: '8m ago', link: '/compliance/passports?focus=p3' },
+  { id: 'n12', audience: 'compliance', category: 'passport', title: 'Field capture complete', body: 'Agent uploaded GPS + photos for GO-SN-2026-000118 — ready to approve.', read: false, time: '40m ago', link: '/compliance/passports?focus=p2' },
+]
+
+// ---- Compliance / Digital Mineral Passport ----
+export const COMPLIANCE_CO = 'GenesysOne Compliance'
+
+/**
+ * Primary element behind each tradeable mineral — drives the periodic-tile,
+ * default product name, and the grade-label suffix on the passport.
+ */
+export const MINERAL_ELEMENT: Record<
+  Mineral,
+  { symbol: string; atomic: number; element: string; product: string; gradeUnit: string }
+> = {
+  tin: { symbol: 'Sn', atomic: 50, element: 'Tin', product: 'Cassiterite Concentrate', gradeUnit: '% Sn' },
+  lithium: { symbol: 'Li', atomic: 3, element: 'Lithium', product: 'Lithium Concentrate', gradeUnit: '% Li₂O' },
+  columbite: { symbol: 'Nb', atomic: 41, element: 'Niobium', product: 'Columbite Concentrate', gradeUnit: '% Nb₂O₅' },
+  lead: { symbol: 'Pb', atomic: 82, element: 'Lead', product: 'Galena Concentrate', gradeUnit: '% Pb' },
+  zinc: { symbol: 'Zn', atomic: 30, element: 'Zinc', product: 'Sphalerite Concentrate', gradeUnit: '% Zn' },
+  copper: { symbol: 'Cu', atomic: 29, element: 'Copper', product: 'Copper Concentrate', gradeUnit: '% Cu' },
+  wolframite: { symbol: 'W', atomic: 74, element: 'Tungsten', product: 'Wolframite Concentrate', gradeUnit: '% WO₃' },
+  monazite: { symbol: 'Ce', atomic: 58, element: 'Cerium', product: 'Monazite Concentrate', gradeUnit: '% REO' },
+  tantalite: { symbol: 'Ta', atomic: 73, element: 'Tantalum', product: 'Tantalite Concentrate', gradeUnit: '% Ta₂O₅' },
+  beryllium: { symbol: 'Be', atomic: 4, element: 'Beryllium', product: 'Beryl Concentrate', gradeUnit: '% BeO' },
+  gold: { symbol: 'Au', atomic: 79, element: 'Gold', product: 'Gold Concentrate', gradeUnit: '% Au' },
+  spodumene: { symbol: 'Li', atomic: 3, element: 'Lithium', product: 'Spodumene Concentrate', gradeUnit: '% Li₂O' },
+}
+
+export const MINING_SITES: MiningSite[] = [
+  { id: 'site1', name: 'Barkin Ladi Tin Field', region: 'Plateau', country: 'Nigeria', lga: 'Barkin Ladi', gps: { lat: 9.5361, lng: 8.9012 }, operator: SELLER_CO, type: 'mine', method: 'Alluvial / Open Pit' },
+  { id: 'site2', name: 'Karu Lithium Project', region: 'Nasarawa', country: 'Nigeria', lga: 'Karu', gps: { lat: 8.9701, lng: 7.7405 }, operator: SELLER_CO, type: 'mine', method: 'Hard-Rock Pegmatite' },
+  { id: 'site3', name: 'Nasarawa Eggon Columbite', region: 'Nasarawa', country: 'Nigeria', lga: 'Nasarawa Eggon', gps: { lat: 8.7333, lng: 8.5500 }, operator: SELLER_CO, type: 'mine', method: 'Open Pit' },
+]
+
+export const COMPLIANCE_AGENTS: ComplianceAgent[] = [
+  { id: 'ag1', name: 'Tunde Bakare', region: 'North Central', status: 'available', assignments: 2 },
+  { id: 'ag2', name: 'Aisha Mohammed', region: 'Plateau / Nasarawa', status: 'on_assignment', assignments: 3 },
+  { id: 'ag3', name: 'Chidi Okafor', region: 'North West', status: 'available', assignments: 1 },
+]
+
+const stellarHash = (s: string) => s
+
+export const PASSPORTS: Passport[] = [
+  {
+    id: 'p1',
+    number: 'GO-LI-2026-000124',
+    status: 'verified',
+    inventoryId: 'inv3',
+    mineral: 'lithium',
+    productName: 'Lithium Concentrate',
+    grade: 5.2,
+    gradeLabel: '5.2% Li₂O',
+    quantity: 120.45,
+    unit: 'ton',
+    miningMethod: 'Hard-Rock Pegmatite',
+    batchId: 'BTH-LIT-0188',
+    seller: SELLER_CO,
+    siteId: 'site2',
+    siteName: 'Karu Lithium Project',
+    region: 'Nasarawa',
+    country: 'Nigeria',
+    gps: { lat: 8.9701, lng: 7.7405 },
+    agentId: 'ag2',
+    agentName: 'Aisha Mohammed',
+    requestedAt: '08 May 2026',
+    extractedAt: '12 May 2026',
+    verifiedAt: '15 May 2026',
+    updatedAt: '15 May 2026',
+    esg: { overall: 92, environmental: 94, social: 90, governance: 91, supplyChain: 93 },
+    carbonTotal: 18.6,
+    carbonIntensity: 2.35,
+    testResultId: undefined,
+    composition: [
+      { label: 'Lithium Oxide', formula: 'Li₂O', value: 5.2 },
+      { label: 'Iron Oxide', formula: 'Fe₂O₃', value: 0.85 },
+      { label: 'Silica', formula: 'SiO₂', value: 68.4 },
+      { label: 'Alumina', formula: 'Al₂O₃', value: 1.25 },
+      { label: 'Moisture', formula: 'H₂O', value: 0.45 },
+    ],
+    journey: [
+      { key: 'extraction', date: '12 May 2026', location: 'Karu Lithium Project' },
+      { key: 'processing', date: '13 May 2026', location: 'Karu Processing Plant' },
+      { key: 'transport', date: '14 May 2026', location: 'Karu → Lagos Port' },
+      { key: 'export', date: '15 May 2026', location: 'Lagos Port' },
+    ],
+    custody: [
+      { id: 'c1', label: 'Sample sealed in tamper-proof QR bag', actor: 'Aisha Mohammed · Agent', at: '12 May 2026 · 10:20', txHash: stellarHash('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') },
+      { id: 'c2', label: 'Lab assay completed & signed off', actor: 'Geneva Assay Laboratories', at: '14 May 2026 · 16:05', txHash: stellarHash('a1f5c2b9d8e74630aa12bd3490e7f8c1ee2299aa44bb55cc66dd77ee88ff0011') },
+      { id: 'c3', label: 'Passport approved & anchored', actor: 'GenesysOne Compliance', at: '15 May 2026 · 09:12', txHash: stellarHash('9b74c9897bac770ffc029102a200c5de2dd5f3f1f3a7b9c0e1d2c3b4a5968778') },
+    ],
+    chain: 'Stellar',
+    txHash: 'stellar:GA7QYNF7SOWQ3GLR2BGMZEHHJ4SE5XKPFJ5MZQ3K8GQ9X2C4LMNOPQR',
+    anchoredAt: '15 May 2026 · 09:12',
+  },
+  {
+    id: 'p2',
+    number: 'GO-SN-2026-000118',
+    status: 'in_verification',
+    inventoryId: 'inv1',
+    mineral: 'tin',
+    productName: 'Cassiterite Concentrate',
+    grade: 71.4,
+    gradeLabel: '71.4% Sn',
+    quantity: 60,
+    unit: 'ton',
+    miningMethod: 'Alluvial / Open Pit',
+    batchId: 'BTH-TIN-0091',
+    seller: SELLER_CO,
+    siteId: 'site1',
+    siteName: 'Barkin Ladi Tin Field',
+    region: 'Plateau',
+    country: 'Nigeria',
+    gps: { lat: 9.5361, lng: 8.9012 },
+    agentId: 'ag2',
+    agentName: 'Aisha Mohammed',
+    requestedAt: '02 Jun 2026',
+    extractedAt: '05 Jun 2026',
+    updatedAt: '06 Jun 2026',
+    esg: { overall: 88, environmental: 86, social: 89, governance: 90, supplyChain: 87 },
+    carbonTotal: 9.2,
+    carbonIntensity: 1.8,
+    composition: [
+      { label: 'Tin', formula: 'Sn', value: 71.4 },
+      { label: 'Silica', formula: 'SiO₂', value: 18.6 },
+      { label: 'Iron', formula: 'Fe', value: 2.1 },
+      { label: 'Tantalum Oxide', formula: 'Ta₂O₅', value: 0.4 },
+      { label: 'Moisture', formula: 'H₂O', value: 0.6 },
+    ],
+    journey: [
+      { key: 'extraction', date: '05 Jun 2026', location: 'Barkin Ladi Tin Field' },
+      { key: 'processing', date: '06 Jun 2026', location: 'Jos Processing Yard' },
+    ],
+    custody: [
+      { id: 'c1', label: 'Sample sealed in tamper-proof QR bag', actor: 'Aisha Mohammed · Agent', at: '05 Jun 2026 · 11:40', txHash: stellarHash('44bb55cc66dd77ee88ff0011a1f5c2b9d8e74630aa12bd3490e7f8c1ee2299aa') },
+    ],
+    chain: 'Stellar',
+  },
+  {
+    id: 'p3',
+    number: 'GO-NB-2026-000131',
+    status: 'pending',
+    inventoryId: 'inv2',
+    mineral: 'columbite',
+    productName: 'Columbite Concentrate',
+    grade: 64.2,
+    gradeLabel: '64.2% Nb₂O₅',
+    quantity: 40,
+    unit: 'ton',
+    miningMethod: 'Open Pit',
+    batchId: 'BTH-COL-0021',
+    seller: SELLER_CO,
+    siteId: 'site3',
+    siteName: 'Nasarawa Eggon Columbite',
+    region: 'Nasarawa',
+    country: 'Nigeria',
+    gps: { lat: 8.7333, lng: 8.55 },
+    requestedAt: '26 Jun 2026',
+    updatedAt: '26 Jun 2026',
+    chain: 'Stellar',
+  },
 ]

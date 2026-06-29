@@ -27,6 +27,7 @@ const CATEGORY: Record<
   rfq: { icon: FileText, cls: 'bg-forest-50 text-forest-500' },
   sample: { icon: TestTube2, cls: 'bg-forest-50 text-forest-500' },
   trade: { icon: ArrowLeftRight, cls: 'bg-forest-50 text-forest-500' },
+  passport: { icon: ShieldCheck, cls: 'bg-lime-100 text-forest-500' },
   system: { icon: Bell, cls: 'bg-panel text-forest-400' },
 }
 

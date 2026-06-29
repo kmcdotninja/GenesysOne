@@ -1,4 +1,4 @@
-export type Role = 'seller' | 'buyer' | 'lab'
+export type Role = 'seller' | 'buyer' | 'lab' | 'compliance'
 
 export const MINERALS = [
   'tin',
@@ -227,7 +227,7 @@ export interface Director {
 export interface NotificationItem {
   id: string
   audience: Role
-  category: 'kyc' | 'trade' | 'payment' | 'test_request' | 'rfq' | 'sample' | 'system'
+  category: 'kyc' | 'trade' | 'payment' | 'test_request' | 'rfq' | 'sample' | 'system' | 'passport'
   title: string
   body: string
   read: boolean
@@ -235,4 +235,106 @@ export interface NotificationItem {
   /** Route this notification deep-links to (may include a query that opens a
    *  specific entity, e.g. `/seller/trades?order=GEN-24901`). */
   link?: string
+}
+
+/* ---------------- Digital Mineral Passport ---------------- */
+
+export type PassportStatus = 'pending' | 'in_verification' | 'verified' | 'rejected'
+
+/** ESG breakdown shown on the public passport (0–100). */
+export interface EsgScore {
+  overall: number
+  environmental: number
+  social: number
+  governance: number
+  supplyChain: number
+}
+
+/** A single line in the lab composition breakdown (e.g. Li₂O 5.20%). */
+export interface CompositionEntry {
+  label: string
+  formula: string
+  value: number
+}
+
+/** One node in the mine→export traceability strip. */
+export interface JourneyStage {
+  key: 'extraction' | 'processing' | 'transport' | 'export'
+  date: string
+  location: string
+}
+
+/** A chain-of-custody event, optionally anchored on-chain. */
+export interface CustodyEvent {
+  id: string
+  label: string
+  actor: string
+  at: string
+  txHash?: string
+}
+
+export interface MiningSite {
+  id: string
+  name: string
+  region: string
+  country: string
+  lga?: string
+  gps: { lat: number; lng: number }
+  operator: string
+  type: (typeof LOCATION_TYPE)[number]
+  method?: string
+}
+
+export interface ComplianceAgent {
+  id: string
+  name: string
+  region: string
+  status: 'available' | 'on_assignment'
+  assignments: number
+}
+
+export interface Passport {
+  id: string
+  /** Public passport number, e.g. GO-LI-2025-000124 */
+  number: string
+  status: PassportStatus
+  // product
+  inventoryId?: string
+  mineral: Mineral
+  productName: string
+  grade: number
+  gradeLabel: string
+  quantity: number
+  unit: Unit
+  miningMethod?: string
+  batchId?: string
+  // origin / provenance
+  seller: string
+  siteId?: string
+  siteName: string
+  region: string
+  country: string
+  gps: { lat: number; lng: number }
+  // verification lifecycle
+  agentId?: string
+  agentName?: string
+  requestedAt: string
+  extractedAt?: string
+  verifiedAt?: string
+  updatedAt: string
+  rejectedReason?: string
+  // ESG + carbon
+  esg?: EsgScore
+  carbonTotal?: number
+  carbonIntensity?: number
+  // lab linkage
+  testResultId?: string
+  composition?: CompositionEntry[]
+  // traceability
+  journey?: JourneyStage[]
+  custody?: CustodyEvent[]
+  // blockchain anchor (Stellar)
+  chain: 'Stellar'
+  txHash?: string
+  anchoredAt?: string
 }

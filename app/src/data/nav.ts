@@ -9,8 +9,11 @@ import {
   History,
   Inbox,
   LayoutDashboard,
+  MapPin,
+  ShieldCheck,
   Store,
   TestTube2,
+  Users,
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
@@ -49,6 +52,12 @@ export const ROLE_META: Record<Role, RoleMeta> = {
     kyc: 'under_review',
     base: '/lab',
   },
+  compliance: {
+    label: 'Compliance',
+    company: 'GenesysOne Compliance',
+    kyc: 'verified',
+    base: '/compliance',
+  },
 }
 
 export const ROLE_NAV: Record<Role, NavItem[]> = {
@@ -76,9 +85,15 @@ export const ROLE_NAV: Record<Role, NavItem[]> = {
     { label: 'Wallet', to: '/lab/wallet', icon: Wallet },
     { label: 'Notifications', to: '/lab/notifications', icon: Bell },
   ],
+  compliance: [
+    { label: 'Dashboard', to: '/compliance', icon: LayoutDashboard, end: true },
+    { label: 'Passports', to: '/compliance/passports', icon: ShieldCheck },
+    { label: 'Mining Sites', to: '/compliance/sites', icon: MapPin },
+    { label: 'Field Agents', to: '/compliance/agents', icon: Users },
+  ],
 }
 
-export const ROLES: Role[] = ['seller', 'buyer', 'lab']
+export const ROLES: Role[] = ['seller', 'buyer', 'lab', 'compliance']
 
 export const ROLE_TAGLINE: Record<Role, { icon: LucideIcon; blurb: string }> = {
   seller: {
@@ -92,5 +107,9 @@ export const ROLE_TAGLINE: Record<Role, { icon: LucideIcon; blurb: string }> = {
   lab: {
     icon: FlaskConical,
     blurb: 'Receive testing requests, run assays, and publish signed certificates.',
+  },
+  compliance: {
+    icon: ShieldCheck,
+    blurb: 'Verify mine sites, issue blockchain-anchored passports, and uphold ESG standards.',
   },
 }

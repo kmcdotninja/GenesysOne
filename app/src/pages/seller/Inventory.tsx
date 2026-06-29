@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { CalendarClock, ChevronRight, Plus } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { CalendarClock, ChevronRight, ExternalLink, Plus, Share2, ShieldCheck } from 'lucide-react'
 import { PageHeader } from '@/components/shell/PageHeader'
 import {
   Badge,
@@ -9,6 +10,7 @@ import {
   EmptyState,
   MineralIcon,
   StatusPill,
+  useToast,
   type Column,
 } from '@/components/ui'
 import { MineralModal, SamplingModal } from '@/components/modals'
@@ -16,9 +18,27 @@ import { useStore } from '@/store/AppStore'
 import type { InventoryItem } from '@/data/types'
 
 export function SellerInventory() {
-  const { inventory, samplingRequests } = useStore()
+  const { inventory, samplingRequests, passports, requestPassport } = useStore()
+  const toast = useToast()
   const [mineralDrawer, setMineralDrawer] = useState<{ item: InventoryItem | null } | null>(null)
   const [sampleOpen, setSampleOpen] = useState(false)
+
+  const passportFor = (id: string) => passports.find((p) => p.inventoryId === id && p.status !== 'rejected')
+
+  const stop = (e: React.MouseEvent) => e.stopPropagation()
+
+  const sharePassport = (e: React.MouseEvent, number: string) => {
+    stop(e)
+    const url = `${window.location.origin}/passport/${number}`
+    navigator.clipboard?.writeText(url)
+    toast.success('Public link copied', url)
+  }
+
+  const onRequest = (e: React.MouseEvent, item: InventoryItem) => {
+    stop(e)
+    requestPassport(item.id)
+    toast.success('Passport requested', `${item.mineral} sent to compliance for verification.`)
+  }
 
   const columns: Column<InventoryItem>[] = [
     {
@@ -54,6 +74,40 @@ export function SellerInventory() {
       key: 'location',
       header: 'Location',
       cell: (r) => <span className="text-forest-500">{r.state} · {r.lga}</span>,
+    },
+    {
+      key: 'passport',
+      header: 'Passport',
+      cell: (r) => {
+        const p = passportFor(r.id)
+        if (!p) {
+          return (
+            <Button size="sm" variant="secondary" leftIcon={<ShieldCheck size={14} />} onClick={(e) => onRequest(e, r)}>
+              Request
+            </Button>
+          )
+        }
+        if (p.status === 'verified') {
+          return (
+            <div className="flex items-center gap-2" onClick={stop}>
+              <Badge tone="success" dot>Verified</Badge>
+              <Link
+                to={`/passport/${p.number}`}
+                target="_blank"
+                onClick={stop}
+                className="text-forest-300 transition-colors hover:text-forest"
+                title="View public passport"
+              >
+                <ExternalLink size={15} />
+              </Link>
+              <button onClick={(e) => sharePassport(e, p.number)} className="text-forest-300 transition-colors hover:text-forest" title="Copy public link">
+                <Share2 size={15} />
+              </button>
+            </div>
+          )
+        }
+        return <StatusPill status={p.status} />
+      },
     },
     {
       key: 'actions',

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { CheckCircle2, Package, ShieldCheck, Wallet } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { CheckCircle2, ExternalLink, Package, ShieldCheck, Wallet } from 'lucide-react'
 import { PageHeader } from '@/components/shell/PageHeader'
 import {
   Button,
@@ -23,7 +23,7 @@ import { money } from '@/lib/format'
 import type { Trade } from '@/data/types'
 
 export function BuyerTrades() {
-  const { trades, testResults, releaseEscrow } = useStore()
+  const { trades, testResults, releaseEscrow, passports } = useStore()
   const toast = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const [tab, setTab] = useState<'active' | 'history'>('active')
@@ -207,6 +207,20 @@ export function BuyerTrades() {
               ) : (
                 <p className="mt-2 text-sm text-forest-400">No certificate linked to this batch yet.</p>
               )}
+              {(() => {
+                const passport = passports.find((p) => p.batchId === active.batchId && p.status === 'verified')
+                if (!passport) return null
+                return (
+                  <Link
+                    to={`/passport/${passport.number}`}
+                    target="_blank"
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-forest px-3.5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-forest-600"
+                  >
+                    <ShieldCheck size={15} className="text-lime" /> View Digital Mineral Passport
+                    <ExternalLink size={13} />
+                  </Link>
+                )
+              })()}
             </div>
           </div>
         )}

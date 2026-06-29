@@ -7,12 +7,17 @@ import {
   type ReactNode,
 } from 'react'
 import * as mock from '@/data/mock'
-import { BUYER_CO, SELLER_CO } from '@/data/mock'
+import { BUYER_CO, COMPLIANCE_CO, MINERAL_ELEMENT, SELLER_CO } from '@/data/mock'
 import type {
+  ComplianceAgent,
   Currency,
+  CustodyEvent,
+  EsgScore,
   InventoryItem,
   Listing,
+  MiningSite,
   NotificationItem,
+  Passport,
   RFQ,
   RfqMessage,
   RFQStatus,
@@ -28,7 +33,7 @@ import type {
 } from '@/data/types'
 import { money } from '@/lib/format'
 
-const KEY = 'genesys.store.v2'
+const KEY = 'genesys.store.v3'
 
 interface StoreState {
   inventory: InventoryItem[]
@@ -42,6 +47,9 @@ interface StoreState {
   labTransactions: Transaction[]
   testResults: TestResult[]
   notifications: NotificationItem[]
+  passports: Passport[]
+  miningSites: MiningSite[]
+  agents: ComplianceAgent[]
   walletNGN: number
   walletUSD: number
   labWalletNGN: number
@@ -60,6 +68,9 @@ function initialState(): StoreState {
     labTransactions: mock.LAB_TRANSACTIONS,
     testResults: mock.TEST_RESULTS,
     notifications: mock.NOTIFICATIONS,
+    passports: mock.PASSPORTS,
+    miningSites: mock.MINING_SITES,
+    agents: mock.COMPLIANCE_AGENTS,
     walletNGN: mock.WALLET.balanceNGN,
     walletUSD: mock.WALLET.balanceUSD,
     labWalletNGN: mock.LAB_WALLET.balanceNGN,
@@ -96,6 +107,34 @@ function nextOrderNumber(): string {
 }
 function batchFor(mineral: string): string {
   return `BTH-${mineral.slice(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`
+}
+
+let passportSeq = 132
+function nextPassportNumber(mineral: keyof typeof MINERAL_ELEMENT): string {
+  const sym = MINERAL_ELEMENT[mineral].symbol.toUpperCase()
+  return `GO-${sym}-${new Date().getFullYear()}-${String(passportSeq++).padStart(6, '0')}`
+}
+/** Mock a Stellar transaction id (56-char base32) for the on-chain anchor. */
+function stellarTx(): string {
+  const a = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+  let id = ''
+  for (let i = 0; i < 56; i++) id += a[Math.floor(Math.random() * a.length)]
+  return id
+}
+/** A plausible default ESG score for a freshly approved passport. */
+function defaultEsg(): EsgScore {
+  const r = (lo: number, hi: number) => Math.round(lo + Math.random() * (hi - lo))
+  const environmental = r(84, 95)
+  const social = r(84, 94)
+  const governance = r(86, 95)
+  const supplyChain = r(85, 95)
+  return {
+    overall: Math.round((environmental + social + governance + supplyChain) / 4),
+    environmental,
+    social,
+    governance,
+    supplyChain,
+  }
 }
 
 interface StoreApi extends StoreState {
@@ -136,6 +175,15 @@ interface StoreApi extends StoreState {
   }) => void
   markNotificationRead: (id: string) => void
   markAllNotificationsRead: (audience?: Role) => void
+  // Digital Mineral Passport lifecycle
+  requestPassport: (inventoryId: string) => void
+  assignAgent: (passportId: string, agentId: string) => void
+  submitFieldCapture: (
+    passportId: string,
+    input: { gps?: { lat: number; lng: number }; siteName?: string; photos?: number },
+  ) => void
+  approvePassport: (passportId: string) => void
+  rejectPassport: (passportId: string, reason: string) => void
   reset: () => void
 }
 
@@ -474,6 +522,166 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           }
         }),
 
+      requestPassport: (inventoryId) =>
+        patch((s) => {
+          const inv = s.inventory.find((i) => i.id === inventoryId)
+          if (!inv) return s
+          // Don't open a second active passport for the same product.
+          if (s.passports.some((p) => p.inventoryId === inventoryId && p.status !== 'rejected')) return s
+          const el = MINERAL_ELEMENT[inv.mineral]
+          const site = s.miningSites.find((si) => si.region === inv.state && si.operator === SELLER_CO)
+          const id = newId('p')
+          const passport: Passport = {
+            id,
+            number: nextPassportNumber(inv.mineral),
+            status: 'pending',
+            inventoryId,
+            mineral: inv.mineral,
+            productName: el.product,
+            grade: inv.grade,
+            gradeLabel: `${inv.grade}${el.gradeUnit}`,
+            quantity: inv.available,
+            unit: inv.unit,
+            miningMethod: site?.method,
+            seller: SELLER_CO,
+            siteId: site?.id,
+            siteName: site?.name ?? `${inv.lga}, ${inv.state}`,
+            region: inv.state,
+            country: 'Nigeria',
+            gps: site?.gps ?? { lat: 9.0, lng: 8.6 },
+            requestedAt: 'Just now',
+            updatedAt: 'Just now',
+            chain: 'Stellar',
+          }
+          return {
+            ...s,
+            passports: [passport, ...s.passports],
+            notifications: [
+              mkNotif('compliance', 'passport', 'New passport request', `${SELLER_CO} requested a passport for ${el.product} (${passport.number}).`, `/compliance/passports?focus=${id}`),
+              mkNotif('seller', 'passport', 'Passport requested', `${passport.number} is pending compliance verification.`, '/seller/inventory'),
+              ...s.notifications,
+            ],
+          }
+        }),
+
+      assignAgent: (passportId, agentId) =>
+        patch((s) => {
+          const agent = s.agents.find((a) => a.id === agentId)
+          const passport = s.passports.find((p) => p.id === passportId)
+          if (!passport) return s
+          return {
+            ...s,
+            passports: s.passports.map((p) =>
+              p.id === passportId
+                ? { ...p, status: 'in_verification', agentId, agentName: agent?.name, updatedAt: 'Just now' }
+                : p,
+            ),
+            agents: s.agents.map((a) =>
+              a.id === agentId ? { ...a, status: 'on_assignment', assignments: a.assignments + 1 } : a,
+            ),
+            notifications: [
+              mkNotif('seller', 'passport', 'Verification started', `${agent?.name ?? 'A field agent'} was assigned to verify ${passport.number}.`, '/seller/inventory'),
+              ...s.notifications,
+            ],
+          }
+        }),
+
+      submitFieldCapture: (passportId, input) =>
+        patch((s) => {
+          const passport = s.passports.find((p) => p.id === passportId)
+          if (!passport) return s
+          const event: CustodyEvent = {
+            id: newId('c'),
+            label: `Field capture complete${input.photos ? ` · ${input.photos} photos` : ''} · sample sealed in QR bag`,
+            actor: `${passport.agentName ?? 'Field agent'} · Agent`,
+            at: 'Just now',
+            txHash: stellarTx(),
+          }
+          return {
+            ...s,
+            passports: s.passports.map((p) =>
+              p.id === passportId
+                ? {
+                    ...p,
+                    gps: input.gps ?? p.gps,
+                    siteName: input.siteName ?? p.siteName,
+                    extractedAt: p.extractedAt ?? 'Just now',
+                    custody: [...(p.custody ?? []), event],
+                    updatedAt: 'Just now',
+                  }
+                : p,
+            ),
+            notifications: [
+              mkNotif('compliance', 'passport', 'Field capture uploaded', `${passport.number} has GPS + photos — ready for lab + approval.`, `/compliance/passports?focus=${passportId}`),
+              ...s.notifications,
+            ],
+          }
+        }),
+
+      approvePassport: (passportId) =>
+        patch((s) => {
+          const passport = s.passports.find((p) => p.id === passportId)
+          if (!passport) return s
+          const tx = stellarTx()
+          const anchor: CustodyEvent = {
+            id: newId('c'),
+            label: 'Passport approved & anchored on Stellar',
+            actor: COMPLIANCE_CO,
+            at: 'Just now',
+            txHash: tx,
+          }
+          return {
+            ...s,
+            passports: s.passports.map((p) =>
+              p.id === passportId
+                ? {
+                    ...p,
+                    status: 'verified',
+                    verifiedAt: 'Just now',
+                    updatedAt: 'Just now',
+                    esg: p.esg ?? defaultEsg(),
+                    carbonTotal: p.carbonTotal ?? Math.round((p.quantity * 0.15 + 5) * 10) / 10,
+                    carbonIntensity: p.carbonIntensity ?? 1.9,
+                    chain: 'Stellar',
+                    txHash: `stellar:${tx}`,
+                    anchoredAt: 'Just now',
+                    custody: [...(p.custody ?? []), anchor],
+                  }
+                : p,
+            ),
+            agents: passport.agentId
+              ? s.agents.map((a) =>
+                  a.id === passport.agentId ? { ...a, status: 'available', assignments: Math.max(0, a.assignments - 1) } : a,
+                )
+              : s.agents,
+            notifications: [
+              mkNotif('seller', 'passport', 'Passport verified', `${passport.number} is now blockchain-verified and live — share the public link or print the QR.`, '/seller/inventory'),
+              ...s.notifications,
+            ],
+          }
+        }),
+
+      rejectPassport: (passportId, reason) =>
+        patch((s) => {
+          const passport = s.passports.find((p) => p.id === passportId)
+          if (!passport) return s
+          return {
+            ...s,
+            passports: s.passports.map((p) =>
+              p.id === passportId ? { ...p, status: 'rejected', rejectedReason: reason, updatedAt: 'Just now' } : p,
+            ),
+            agents: passport.agentId
+              ? s.agents.map((a) =>
+                  a.id === passport.agentId ? { ...a, status: 'available', assignments: Math.max(0, a.assignments - 1) } : a,
+                )
+              : s.agents,
+            notifications: [
+              mkNotif('seller', 'passport', 'Passport rejected', `${passport.number} was rejected: ${reason}`, '/seller/inventory'),
+              ...s.notifications,
+            ],
+          }
+        }),
+
       deposit: (amount, currency, method) =>
         patch((s) => ({
           ...s,
@@ -543,11 +751,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           const request = s.testingRequests.find((r) => r.id === input.requestId)
           // Tell whoever raised the request that their certificate is ready.
           const requesterRole = request?.requesterRole ?? 'seller'
+          const resId = newId('res')
+          const labEvent: CustodyEvent = {
+            id: newId('c'),
+            label: 'Lab assay completed & signed off',
+            actor: `${input.signedBy} · Lab`,
+            at: 'Just now',
+            txHash: stellarTx(),
+          }
           return {
             ...s,
             testResults: [
               {
-                id: newId('res'),
+                id: resId,
                 batchId: input.batchId,
                 mineral: input.mineral,
                 gradeMeasured: input.gradeMeasured,
@@ -564,6 +780,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             ),
             // Any trade carrying this batch is now backed by a signed certificate.
             trades: s.trades.map((t) => (t.batchId === input.batchId ? { ...t, certified: true } : t)),
+            // Feed the result into any passport tracking this batch.
+            passports: s.passports.map((p) =>
+              p.batchId === input.batchId
+                ? { ...p, testResultId: resId, custody: [...(p.custody ?? []), labEvent], updatedAt: 'Just now' }
+                : p,
+            ),
             labWalletNGN: s.labWalletNGN + fee,
             labTransactions: [
               {

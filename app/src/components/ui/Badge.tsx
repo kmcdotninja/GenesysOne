@@ -72,6 +72,8 @@ const statusTone: Record<string, Tone> = {
   incoming: 'warning',
   accepted: 'info',
   in_progress: 'lime',
+  // passport
+  in_verification: 'lime',
   // kyc
   not_started: 'neutral',
   submitted: 'warning',

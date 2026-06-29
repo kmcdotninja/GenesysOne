@@ -27,6 +27,13 @@ import { LabHistory } from '@/pages/lab/History'
 import { LabWallet } from '@/pages/lab/Wallet'
 import { LabNotifications } from '@/pages/lab/Notifications'
 
+import { ComplianceDashboard } from '@/pages/compliance/Dashboard'
+import { CompliancePassports } from '@/pages/compliance/Passports'
+import { ComplianceSites } from '@/pages/compliance/Sites'
+import { ComplianceAgents } from '@/pages/compliance/Agents'
+
+import { PublicPassport } from '@/pages/PublicPassport'
+
 function ScrollToTop() {
   const { pathname } = useLocation()
   useEffect(() => {
@@ -43,6 +50,9 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+
+        {/* Public, no-login Digital Mineral Passport (QR scan target) */}
+        <Route path="/passport/:code" element={<PublicPassport />} />
 
         <Route path="/seller" element={<AppShell role="seller" />}>
           <Route index element={<SellerDashboard />} />
@@ -71,6 +81,14 @@ export default function App() {
           <Route path="history" element={<LabHistory />} />
           <Route path="wallet" element={<LabWallet />} />
           <Route path="notifications" element={<LabNotifications />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+
+        <Route path="/compliance" element={<AppShell role="compliance" />}>
+          <Route index element={<ComplianceDashboard />} />
+          <Route path="passports" element={<CompliancePassports />} />
+          <Route path="sites" element={<ComplianceSites />} />
+          <Route path="agents" element={<ComplianceAgents />} />
           <Route path="settings" element={<Settings />} />
         </Route>
 

@@ -13,6 +13,7 @@ interface RequestedItem {
 const REQUESTED: Record<Role, RequestedItem[]> = {
   seller: [],
   buyer: [],
+  compliance: [],
   lab: [
     {
       label: 'Updated ISO/IEC 17025 accreditation',

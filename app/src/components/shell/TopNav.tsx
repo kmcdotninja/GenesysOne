@@ -64,12 +64,19 @@ function useSearchIndex(role: Role): SearchResult[] {
       store.sampleRequests.forEach((s) =>
         push({ id: s.id, label: `${cap(s.mineral)} sample`, sub: `${s.seller} · ${s.status}`, to: '/buyer/samples', mineral: s.mineral, kind: 'data' }),
       )
-    } else {
+    } else if (role === 'lab') {
       store.testingRequests.forEach((r) =>
         push({ id: r.id, label: r.batchId, sub: `${cap(r.mineral)} · ${r.status}`, to: '/lab/requests', mineral: r.mineral, kind: 'data' }),
       )
       store.testResults.forEach((r) =>
         push({ id: r.id, label: r.batchId, sub: `${cap(r.mineral)} result · ${r.status}`, to: '/lab/history', mineral: r.mineral, kind: 'data' }),
+      )
+    } else {
+      store.passports.forEach((p) =>
+        push({ id: p.id, label: p.number, sub: `${cap(p.mineral)} · ${p.status.replace('_', ' ')}`, to: `/compliance/passports?focus=${p.id}`, mineral: p.mineral, kind: 'data' }),
+      )
+      store.miningSites.forEach((si) =>
+        push({ id: si.id, label: si.name, sub: `${si.region} · ${si.type}`, to: '/compliance/sites', kind: 'data' }),
       )
     }
     return [...pages, ...data]
