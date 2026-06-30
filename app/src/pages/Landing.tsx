@@ -14,6 +14,7 @@ export function Landing() {
         {/* top bar */}
         <header className="flex items-center justify-between py-6">
           <Logo className="h-7 text-forest" />
+          {/* Sign in / Create account hidden for now — re-enable later.
           <div className="flex items-center gap-2">
             <Link
               to="/login"
@@ -28,6 +29,7 @@ export function Landing() {
               Create account
             </Link>
           </div>
+          */}
         </header>
 
         {/* hero */}
