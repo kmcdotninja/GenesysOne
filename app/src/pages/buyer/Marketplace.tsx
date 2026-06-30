@@ -10,7 +10,6 @@ import {
   mineralImage,
   SearchInput,
   Select,
-  Toggle,
 } from '@/components/ui'
 import { BuyModal, RfqModal, SampleModal } from '@/components/modals'
 import { GatedButton, useVerifyGuard } from '@/components/shell/AccountContext'
@@ -48,7 +47,7 @@ export function BuyerMarketplace() {
     <div>
       <PageHeader
         title="Marketplace"
-        subtitle="Discover approved, certified listings from verified sellers."
+        subtitle="Every listing is verified and carries a blockchain Digital Passport."
       />
 
       {/* Filter bar */}
@@ -81,7 +80,7 @@ export function BuyerMarketplace() {
 
       <p className="mb-3 flex items-center gap-1.5 text-sm text-forest-400">
         <ShieldCheck size={15} className="text-teal" />
-        {rows.length} certified listing{rows.length === 1 ? '' : 's'} · every mineral carries a Digital Passport
+        {rows.length} verified listing{rows.length === 1 ? '' : 's'} · every mineral carries a Digital Passport
       </p>
 
       {rows.length === 0 ? (
@@ -89,7 +88,7 @@ export function BuyerMarketplace() {
           <EmptyState
             variant="search"
             title="No listings match your filters"
-            description="Try a different mineral, location, or clear the certified filter."
+            description="Try a different mineral or location."
             action={
               <Button
                 variant="secondary"
@@ -97,7 +96,6 @@ export function BuyerMarketplace() {
                   setQuery('')
                   setMineral('all')
                   setState('all')
-                  setCertifiedOnly(false)
                 }}
               >
                 Clear filters
@@ -109,11 +107,11 @@ export function BuyerMarketplace() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {rows.map((m) => {
           const p = passportOf(m)
-          const certified = !!p && p.status === 'verified'
+          const verified = !!p && p.status === 'verified'
           const photo = mineralImage(m.mineral)
           return (
           <Card key={m.id} className="flex flex-col">
-            {/* header: name + grade · quantity (left), certified pill (right) */}
+            {/* header: name + grade · quantity (left), verified pill (right) */}
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h3 className="truncate text-xl font-semibold capitalize text-forest">{m.mineral}</h3>
@@ -121,19 +119,17 @@ export function BuyerMarketplace() {
                   Grade {m.grade}% · {m.quantity} {m.unit} available
                 </p>
               </div>
-              {certified ? (
+              {verified ? (
                 <button
                   type="button"
                   onClick={() => setPassportFor(p)}
                   title="View digital passport"
                   className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-teal-soft px-3 py-1.5 text-xs font-bold text-teal transition-colors hover:brightness-95"
                 >
-                  <span className="h-1.5 w-1.5 rounded-full bg-teal" /> Certified
+                  <span className="h-1.5 w-1.5 rounded-full bg-teal" /> Verified
                 </button>
-              ) : m.certified ? (
-                <Badge tone="success" dot>Certified</Badge>
               ) : (
-                <Badge tone="neutral">Uncertified</Badge>
+                <Badge tone="success" dot>Verified</Badge>
               )}
             </div>
 
@@ -207,7 +203,7 @@ export function BuyerMarketplace() {
                       onClick={() => setMenuFor(null)}
                     />
                     <div className="absolute bottom-full right-0 z-20 mb-2 w-52 overflow-hidden rounded-2xl border border-hair bg-white p-1.5 shadow-soft">
-                      {certified && (
+                      {verified && (
                         <MenuItem
                           icon={ShieldCheck}
                           onClick={() => {
