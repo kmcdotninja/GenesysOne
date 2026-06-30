@@ -4,6 +4,7 @@ import {
   Bell,
   Boxes,
   ClipboardList,
+  FileCheck2,
   FileText,
   FlaskConical,
   History,
@@ -87,6 +88,7 @@ export const ROLE_NAV: Record<Role, NavItem[]> = {
   ],
   compliance: [
     { label: 'Dashboard', to: '/compliance', icon: LayoutDashboard, end: true },
+    { label: 'KYC Reviews', to: '/compliance/kyc', icon: FileCheck2 },
     { label: 'Passports', to: '/compliance/passports', icon: ShieldCheck },
     { label: 'Mining Sites', to: '/compliance/sites', icon: MapPin },
     { label: 'Field Agents', to: '/compliance/agents', icon: Users },

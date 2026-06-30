@@ -68,14 +68,14 @@ function StatusBanner({ status }: { status: string }) {
   )
 }
 
-export function KycStatus({ role, onEdit }: { role: Role; onEdit: () => void }) {
+export function KycStatus({ role, onEdit, status }: { role: Role; onEdit: () => void; status?: string }) {
   const meta = ROLE_META[role]
   const isLab = role === 'lab'
-  const requested = REQUESTED[role]
+  const requested = (status ?? meta.kyc) === 'verified' ? [] : REQUESTED[role]
 
   return (
     <div className="space-y-6">
-      <StatusBanner status={meta.kyc} />
+      <StatusBanner status={status ?? meta.kyc} />
 
       {/* Reviewer requests */}
       {requested.length > 0 && (

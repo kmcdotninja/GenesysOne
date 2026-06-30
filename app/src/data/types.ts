@@ -63,6 +63,7 @@ export type KycStatus =
   | 'under_review'
   | 'verified'
   | 'rejected'
+  | 'info_requested'
 
 export interface InventoryItem {
   id: string
@@ -291,6 +292,47 @@ export interface ComplianceAgent {
   region: string
   status: 'available' | 'on_assignment'
   assignments: number
+}
+
+/* ---------------- KYC / KYB review (Compliance) ---------------- */
+
+export type KycType = 'miner' | 'trader' | 'buyer' | 'lab'
+
+export interface KycDocument {
+  name: string
+  kind: string
+  status: 'received' | 'verified' | 'flagged'
+}
+
+export interface KycDirectorRef {
+  name: string
+  role: string
+  nin: string
+  bvn: string
+  verification: 'pending' | 'verified' | 'failed'
+}
+
+export interface KycSubmission {
+  id: string
+  company: string
+  /** Which account submitted (seller / buyer / lab). */
+  role: Role
+  type: KycType
+  contactName: string
+  contactEmail: string
+  state: string
+  lga: string
+  incorporationType: string
+  incorporationDate: string
+  tin?: string
+  /** Mining license (miner), trading license (trader), accreditation (lab), etc. */
+  license: { kind: string; number: string; expiry?: string }
+  documents: KycDocument[]
+  directors: KycDirectorRef[]
+  status: KycStatus
+  requestedInfo?: string
+  submittedAt: string
+  reviewedAt?: string
 }
 
 export interface Passport {

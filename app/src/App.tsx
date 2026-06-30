@@ -28,6 +28,7 @@ import { LabWallet } from '@/pages/lab/Wallet'
 import { LabNotifications } from '@/pages/lab/Notifications'
 
 import { ComplianceDashboard } from '@/pages/compliance/Dashboard'
+import { ComplianceKyc } from '@/pages/compliance/Kyc'
 import { CompliancePassports } from '@/pages/compliance/Passports'
 import { ComplianceSites } from '@/pages/compliance/Sites'
 import { ComplianceAgents } from '@/pages/compliance/Agents'
@@ -86,6 +87,7 @@ export default function App() {
 
         <Route path="/compliance" element={<AppShell role="compliance" />}>
           <Route index element={<ComplianceDashboard />} />
+          <Route path="kyc" element={<ComplianceKyc />} />
           <Route path="passports" element={<CompliancePassports />} />
           <Route path="sites" element={<ComplianceSites />} />
           <Route path="agents" element={<ComplianceAgents />} />

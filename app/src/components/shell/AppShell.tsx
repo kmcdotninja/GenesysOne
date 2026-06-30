@@ -8,6 +8,7 @@ import { Sidebar } from './Sidebar'
 import { Button, Drawer } from '@/components/ui'
 import { KycFlow } from '@/components/KycFlow'
 import { KycStatus } from '@/components/KycStatus'
+import { useStore } from '@/store/AppStore'
 import { ROLE_META, ROLE_NAV } from '@/data/nav'
 import type { Role } from '@/data/types'
 import { cn } from '@/lib/cn'
@@ -41,9 +42,8 @@ function MobileNav({ role }: { role: Role }) {
   )
 }
 
-function KycBanner({ role, onResume }: { role: Role; onResume: () => void }) {
-  const meta = ROLE_META[role]
-  if (meta.kyc === 'verified') return null
+function KycBanner({ status, onResume }: { status: string; onResume: () => void }) {
+  if (status === 'verified') return null
   return (
     <div className="mb-6 flex items-center gap-3 rounded-3xl border border-orange/30 bg-orange-soft/60 px-4 py-3.5">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-orange-600">
@@ -52,7 +52,7 @@ function KycBanner({ role, onResume }: { role: Role; onResume: () => void }) {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-forest">Complete your KYC to unlock all features</p>
         <p className="text-xs text-forest-400">
-          Your verification is <span className="font-semibold">{meta.kyc.replace(/_/g, ' ')}</span>. Testing,
+          Your verification is <span className="font-semibold">{status.replace(/_/g, ' ')}</span>. Testing,
           trading and withdrawals stay locked until verified.
         </p>
       </div>
@@ -71,6 +71,8 @@ export function AppShell({ role }: { role: Role }) {
   const [formOpen, setFormOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const meta = ROLE_META[role]
+  const { kyc } = useStore()
+  const kycStatus = kyc[role]
 
   const openForm = () => {
     setStatusOpen(false)
@@ -87,7 +89,7 @@ export function AppShell({ role }: { role: Role }) {
             <Sidebar role={role} />
             <main className="min-w-0 flex-1 px-4 pb-24 pt-8 sm:px-6 lg:px-8">
               <MobileNav role={role} />
-              <KycBanner role={role} onResume={openForm} />
+              <KycBanner status={kycStatus} onResume={openForm} />
               <Outlet />
             </main>
           </div>
@@ -97,18 +99,18 @@ export function AppShell({ role }: { role: Role }) {
             open={statusOpen}
             onClose={() => setStatusOpen(false)}
             title="KYC verification"
-            subtitle={`${meta.company} · ${meta.kyc.replace(/_/g, ' ')}`}
+            subtitle={`${meta.company} · ${kycStatus.replace(/_/g, ' ')}`}
             size="lg"
             footer={
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-forest-400">Encrypted at rest · masked in the UI</span>
                 <Button onClick={openForm}>
-                  {meta.kyc === 'verified' ? 'Edit details' : 'Update KYC'}
+                  {kycStatus === 'verified' ? 'Edit details' : 'Update KYC'}
                 </Button>
               </div>
             }
           >
-            <KycStatus role={role} onEdit={openForm} />
+            <KycStatus role={role} onEdit={openForm} status={kycStatus} />
           </Drawer>
 
           {/* KYC edit form */}

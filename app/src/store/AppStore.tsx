@@ -7,13 +7,15 @@ import {
   type ReactNode,
 } from 'react'
 import * as mock from '@/data/mock'
-import { BUYER_CO, COMPLIANCE_CO, MINERAL_ELEMENT, SELLER_CO } from '@/data/mock'
+import { BUYER_CO, COMPLIANCE_CO, LAB_CO, MINERAL_ELEMENT, SELLER_CO } from '@/data/mock'
 import type {
   ComplianceAgent,
   Currency,
   CustodyEvent,
   EsgScore,
   InventoryItem,
+  KycStatus,
+  KycSubmission,
   Listing,
   MiningSite,
   NotificationItem,
@@ -50,6 +52,8 @@ interface StoreState {
   passports: Passport[]
   miningSites: MiningSite[]
   agents: ComplianceAgent[]
+  kyc: Record<Role, KycStatus>
+  kycSubmissions: KycSubmission[]
   walletNGN: number
   walletUSD: number
   labWalletNGN: number
@@ -71,6 +75,8 @@ function initialState(): StoreState {
     passports: mock.PASSPORTS,
     miningSites: mock.MINING_SITES,
     agents: mock.COMPLIANCE_AGENTS,
+    kyc: mock.KYC_STATUS,
+    kycSubmissions: mock.KYC_SUBMISSIONS,
     walletNGN: mock.WALLET.balanceNGN,
     walletUSD: mock.WALLET.balanceUSD,
     labWalletNGN: mock.LAB_WALLET.balanceNGN,
@@ -121,6 +127,15 @@ function stellarTx(): string {
   for (let i = 0; i < 56; i++) id += a[Math.floor(Math.random() * a.length)]
   return id
 }
+/** The "playable" account company behind each role — used to tell whether a
+ *  KYC submission belongs to a demo account (so approval flips its banner). */
+const ROLE_COMPANY: Record<Role, string> = {
+  seller: SELLER_CO,
+  buyer: BUYER_CO,
+  lab: LAB_CO,
+  compliance: COMPLIANCE_CO,
+}
+
 /** A plausible default ESG score for a freshly approved passport. */
 function defaultEsg(): EsgScore {
   const r = (lo: number, hi: number) => Math.round(lo + Math.random() * (hi - lo))
@@ -180,10 +195,20 @@ interface StoreApi extends StoreState {
   assignAgent: (passportId: string, agentId: string) => void
   submitFieldCapture: (
     passportId: string,
-    input: { gps?: { lat: number; lng: number }; siteName?: string; photos?: number },
+    input: {
+      gps?: { lat: number; lng: number }
+      siteName?: string
+      photos?: number
+      esg?: EsgScore
+      evaluation?: string
+    },
   ) => void
   approvePassport: (passportId: string) => void
   rejectPassport: (passportId: string, reason: string) => void
+  // KYC / KYB review (Compliance)
+  approveKyc: (id: string) => void
+  rejectKyc: (id: string, reason: string) => void
+  requestKycInfo: (id: string, note: string) => void
   reset: () => void
 }
 
@@ -590,13 +615,21 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         patch((s) => {
           const passport = s.passports.find((p) => p.id === passportId)
           if (!passport) return s
-          const event: CustodyEvent = {
+          const captureEvent: CustodyEvent = {
             id: newId('c'),
-            label: `Field capture complete${input.photos ? ` · ${input.photos} photos` : ''} · sample sealed in QR bag`,
+            label: `On-field evaluation${input.photos ? ` · ${input.photos} compliance photos` : ''} · sample sealed in QR bag`,
             actor: `${passport.agentName ?? 'Field agent'} · Agent`,
             at: 'Just now',
             txHash: stellarTx(),
           }
+          const esgEvent: CustodyEvent | null = input.esg
+            ? {
+                id: newId('c'),
+                label: `ESG analysis recorded · score ${input.esg.overall}%${input.evaluation ? ` · ${input.evaluation}` : ''}`,
+                actor: COMPLIANCE_CO,
+                at: 'Just now',
+              }
+            : null
           return {
             ...s,
             passports: s.passports.map((p) =>
@@ -605,14 +638,15 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
                     ...p,
                     gps: input.gps ?? p.gps,
                     siteName: input.siteName ?? p.siteName,
+                    esg: input.esg ?? p.esg,
                     extractedAt: p.extractedAt ?? 'Just now',
-                    custody: [...(p.custody ?? []), event],
+                    custody: [...(p.custody ?? []), captureEvent, ...(esgEvent ? [esgEvent] : [])],
                     updatedAt: 'Just now',
                   }
                 : p,
             ),
             notifications: [
-              mkNotif('compliance', 'passport', 'Field capture uploaded', `${passport.number} has GPS + photos — ready for lab + approval.`, `/compliance/passports?focus=${passportId}`),
+              mkNotif('compliance', 'passport', 'Field capture uploaded', `${passport.number} has GPS, photos${input.esg ? ' + ESG' : ''} — ready for lab + approval.`, `/compliance/passports?focus=${passportId}`),
               ...s.notifications,
             ],
           }
@@ -679,6 +713,57 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
               mkNotif('seller', 'passport', 'Passport rejected', `${passport.number} was rejected: ${reason}`, '/seller/inventory'),
               ...s.notifications,
             ],
+          }
+        }),
+
+      approveKyc: (id) =>
+        patch((s) => {
+          const sub = s.kycSubmissions.find((k) => k.id === id)
+          if (!sub) return s
+          const isPrimary = sub.company === ROLE_COMPANY[sub.role]
+          return {
+            ...s,
+            kycSubmissions: s.kycSubmissions.map((k) =>
+              k.id === id ? { ...k, status: 'verified', reviewedAt: 'Just now', requestedInfo: undefined } : k,
+            ),
+            kyc: isPrimary ? { ...s.kyc, [sub.role]: 'verified' } : s.kyc,
+            notifications: isPrimary
+              ? [mkNotif(sub.role, 'kyc', 'KYC verified', `${sub.company} is fully verified — all features are unlocked.`, `/${sub.role}`), ...s.notifications]
+              : s.notifications,
+          }
+        }),
+
+      rejectKyc: (id, reason) =>
+        patch((s) => {
+          const sub = s.kycSubmissions.find((k) => k.id === id)
+          if (!sub) return s
+          const isPrimary = sub.company === ROLE_COMPANY[sub.role]
+          return {
+            ...s,
+            kycSubmissions: s.kycSubmissions.map((k) =>
+              k.id === id ? { ...k, status: 'rejected', reviewedAt: 'Just now', requestedInfo: reason } : k,
+            ),
+            kyc: isPrimary ? { ...s.kyc, [sub.role]: 'rejected' } : s.kyc,
+            notifications: isPrimary
+              ? [mkNotif(sub.role, 'kyc', 'KYC rejected', `${sub.company} verification was rejected: ${reason}`, `/${sub.role}`), ...s.notifications]
+              : s.notifications,
+          }
+        }),
+
+      requestKycInfo: (id, note) =>
+        patch((s) => {
+          const sub = s.kycSubmissions.find((k) => k.id === id)
+          if (!sub) return s
+          const isPrimary = sub.company === ROLE_COMPANY[sub.role]
+          return {
+            ...s,
+            kycSubmissions: s.kycSubmissions.map((k) =>
+              k.id === id ? { ...k, status: 'info_requested', requestedInfo: note, reviewedAt: 'Just now' } : k,
+            ),
+            kyc: isPrimary ? { ...s.kyc, [sub.role]: 'info_requested' } : s.kyc,
+            notifications: isPrimary
+              ? [mkNotif(sub.role, 'kyc', 'More information requested', note, `/${sub.role}`), ...s.notifications]
+              : s.notifications,
           }
         }),
 

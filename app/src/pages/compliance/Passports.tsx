@@ -54,6 +54,8 @@ export function CompliancePassports() {
   const [lat, setLat] = useState('')
   const [lng, setLng] = useState('')
   const [photos, setPhotos] = useState('4')
+  const [esg, setEsg] = useState({ environmental: '92', social: '90', governance: '91', supplyChain: '93' })
+  const [evaluation, setEvaluation] = useState('')
   const [reason, setReason] = useState('')
 
   const active = passports.find((p) => p.id === activeId) ?? null

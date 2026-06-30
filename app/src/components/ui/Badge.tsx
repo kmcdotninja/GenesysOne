@@ -78,6 +78,7 @@ const statusTone: Record<string, Tone> = {
   not_started: 'neutral',
   submitted: 'warning',
   under_review: 'lime',
+  info_requested: 'warning',
   verified: 'success',
   // escrow
   unfunded: 'neutral',
