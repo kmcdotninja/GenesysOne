@@ -13,19 +13,25 @@ export function downloadPassportCertificate(p: Passport) {
   const publicUrl = `${origin}/passport/${p.number}`
   const gps = `${Math.abs(p.gps.lat).toFixed(4)}° ${p.gps.lat >= 0 ? 'N' : 'S'}, ${Math.abs(p.gps.lng).toFixed(4)}° ${p.gps.lng >= 0 ? 'E' : 'W'}`
 
-  // Inline, offline-safe QR (no external request) pointing at the public passport.
+  // GenesysOne brand mark, inlined so the downloaded file is self-contained.
+  const markSvg = renderToStaticMarkup(createElement(Mark))
+  // A coloured, data-URI copy of the mark to drop into the centre of the QR
+  // (currentColor → a fixed green so it renders standalone, offline).
+  const markDataUri = `data:image/svg+xml,${encodeURIComponent(markSvg.replace(/currentColor/g, '#0c5c43'))}`
+
+  // Inline, offline-safe QR (no external request) pointing at the public passport,
+  // with the logo mark embedded at the centre. Level "H" keeps it scannable.
   const qrSvg = renderToStaticMarkup(
     createElement(QRCodeSVG, {
       value: publicUrl,
       size: 132,
-      level: 'M',
+      level: 'H',
       bgColor: '#ffffff',
       fgColor: '#023729',
       marginSize: 0,
+      imageSettings: { src: markDataUri, height: 30, width: 30, excavate: true },
     }),
   )
-  // GenesysOne brand mark, inlined so the downloaded file is self-contained.
-  const markSvg = renderToStaticMarkup(createElement(Mark))
 
   const kv = (label: string, value: string) =>
     `<tr><td class="k">${label}</td><td class="v">${value}</td></tr>`

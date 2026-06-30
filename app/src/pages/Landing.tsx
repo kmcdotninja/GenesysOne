@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, Gem, ShieldCheck, Wallet } from 'lucide-react'
+import { ArrowRight, FileCheck2, Gem, ShieldCheck, Wallet } from 'lucide-react'
 import { Logo, Mark } from '@/components/Logo'
 import { ROLE_META, ROLES, ROLE_TAGLINE } from '@/data/nav'
 
@@ -35,7 +35,7 @@ export function Landing() {
           <div className="max-w-3xl">
             <span className="inline-flex items-center gap-2 rounded-full border border-hair bg-white px-3 py-1.5 text-[13px] font-semibold text-forest-500 shadow-card">
               <span className="h-2 w-2 rounded-full bg-lime-500" />
-              Nigerian solid-minerals marketplace
+              Nigeria's verified solid-minerals marketplace
             </span>
             <h1 className="mt-6 text-[44px] font-semibold leading-[1.05] tracking-[-0.03em] text-forest sm:text-[58px]">
               Trace, certify and trade
@@ -48,8 +48,9 @@ export function Landing() {
               .
             </h1>
             <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-forest-400">
-              GenesysOne connects sellers, buyers and accredited labs on one platform —
-              every batch sampled, assayed and escrow-protected from mine to market.
+              GenesysOne unites sellers, buyers, accredited labs and compliance on one
+              platform — every mineral KYC-verified, lab-assayed and issued a blockchain
+              Digital Passport, then traded under escrow from mine to market.
             </p>
           </div>
 
@@ -94,7 +95,11 @@ export function Landing() {
           <div className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-forest-400">
             <span className="flex items-center gap-2">
               <ShieldCheck size={17} className="text-teal" />
-              KYC-verified businesses
+              KYC &amp; compliance verified
+            </span>
+            <span className="flex items-center gap-2">
+              <FileCheck2 size={17} className="text-teal" />
+              Blockchain mineral passports
             </span>
             <span className="flex items-center gap-2">
               <Gem size={17} className="text-teal" />
@@ -102,7 +107,7 @@ export function Landing() {
             </span>
             <span className="flex items-center gap-2">
               <Wallet size={17} className="text-teal" />
-              Escrow-protected payments
+              Escrow-protected trade
             </span>
           </div>
         </main>
@@ -112,7 +117,7 @@ export function Landing() {
             <Mark className="h-4 w-4 text-forest-300" />
             GenesysOne · demo build
           </span>
-          <span>© 2025 Genesys One</span>
+          <span>© {new Date().getFullYear()} GenesysOne</span>
         </footer>
       </div>
     </div>

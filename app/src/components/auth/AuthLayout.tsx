@@ -13,12 +13,9 @@ const NAMES = [
 ]
 
 const PARTNERS = [
-  'Plateau Minerals',
-  'Sahel Co-op',
-  'Atlantic Metals',
-  'Confluence Ltd',
-  'Lagos Alloy',
-  'Eastern Ore',
+  'Jos Highland Minerals',
+  'Atlantic Metals Trading',
+  'Geneva Assay Labs',
 ]
 
 const BADGES = [

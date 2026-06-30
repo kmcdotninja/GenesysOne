@@ -100,18 +100,18 @@ export const ROLES: Role[] = ['seller', 'buyer', 'lab', 'compliance']
 export const ROLE_TAGLINE: Record<Role, { icon: LucideIcon; blurb: string }> = {
   seller: {
     icon: Store,
-    blurb: 'List mineral inventory, request testing, and sell to verified buyers.',
+    blurb: 'Stock inventory, pass compliance vetting for a Digital Passport, and list to verified buyers.',
   },
   buyer: {
     icon: ClipboardList,
-    blurb: 'Discover certified listings, send RFQs, and trade with escrow protection.',
+    blurb: 'Browse certified listings, send and negotiate RFQs, and trade under escrow protection.',
   },
   lab: {
     icon: FlaskConical,
-    blurb: 'Receive testing requests, run assays, and publish signed certificates.',
+    blurb: 'Receive testing requests, run assays, and publish signed, on-chain certificates.',
   },
   compliance: {
     icon: ShieldCheck,
-    blurb: 'Verify mine sites, issue blockchain-anchored passports, and uphold ESG standards.',
+    blurb: 'Review KYC, vet minerals into blockchain-anchored passports, and uphold ESG standards.',
   },
 }

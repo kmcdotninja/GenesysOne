@@ -38,7 +38,7 @@ import type {
 } from '@/data/types'
 import { money } from '@/lib/format'
 
-const KEY = 'genesys.store.v6'
+const KEY = 'genesys.store.v8'
 
 interface StoreState {
   inventory: InventoryItem[]
