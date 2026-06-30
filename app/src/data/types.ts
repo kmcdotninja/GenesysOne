@@ -1,5 +1,17 @@
 export type Role = 'seller' | 'buyer' | 'lab' | 'compliance'
 
+/** A user-created account (from signup), shown in the account switcher. */
+export interface UserAccount {
+  id: string
+  role: Role
+  company: string
+  contactName: string
+  email: string
+  country?: string
+  kyc: KycStatus
+  createdAt: string
+}
+
 export const MINERALS = [
   'tin',
   'lithium',
@@ -76,7 +88,27 @@ export interface InventoryItem {
   deliveryMode: (typeof DELIVERY_MODE)[number]
   state: string
   lga: string
+  /** Vetting gate before a mineral can be listed. Undefined = legacy/approved. */
+  vetting?: 'pending' | 'approved'
+  /** Digital Passport number, set once compliance approves vetting. */
+  passportNumber?: string
   updatedAt: string
+}
+
+/** A created seller's mineral submitted to Compliance for vetting before listing. */
+export interface MineralVetting {
+  id: string
+  accountId: string
+  inventoryId: string
+  company: string
+  mineral: Mineral
+  grade: number
+  unit: Unit
+  quantity: number
+  state: string
+  status: 'pending' | 'approved'
+  passportNumber?: string
+  submittedAt: string
 }
 
 export interface Listing {
@@ -151,6 +183,8 @@ export interface MarketListing extends Listing {
   deliveryMode: (typeof DELIVERY_MODE)[number]
   locationType: (typeof LOCATION_TYPE)[number]
   trend: number[]
+  /** Public passport number this listing is backed by, if any. */
+  passportNumber?: string
 }
 
 export interface RfqMessage {
@@ -314,6 +348,8 @@ export interface KycDirectorRef {
 
 export interface KycSubmission {
   id: string
+  /** Set when this submission came from a user-created account (not a demo role). */
+  accountId?: string
   company: string
   /** Which account submitted (seller / buyer / lab). */
   role: Role

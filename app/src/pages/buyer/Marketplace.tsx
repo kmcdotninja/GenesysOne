@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BadgeCheck, MapPin, Send, ShoppingCart, Star, TestTube2, Truck } from 'lucide-react'
+import { BadgeCheck, ChevronRight, MapPin, Send, ShieldCheck, ShoppingCart, Star, TestTube2, Truck } from 'lucide-react'
 import { PageHeader } from '@/components/shell/PageHeader'
 import {
   Badge,
@@ -13,11 +13,15 @@ import {
   Toggle,
 } from '@/components/ui'
 import { BuyModal, RfqModal, SampleModal } from '@/components/modals'
+import { GatedButton } from '@/components/shell/AccountContext'
+import { PassportDrawer } from '@/components/PassportDrawer'
+import { useStore } from '@/store/AppStore'
 import { MARKET_LISTINGS, NIGERIAN_STATES } from '@/data/mock'
-import { MINERALS, type MarketListing } from '@/data/types'
+import { MINERALS, type MarketListing, type Passport } from '@/data/types'
 import { money } from '@/lib/format'
 
 export function BuyerMarketplace() {
+  const { passports } = useStore()
   const [query, setQuery] = useState('')
   const [mineral, setMineral] = useState('all')
   const [state, setState] = useState('all')
@@ -25,6 +29,10 @@ export function BuyerMarketplace() {
   const [rfqFor, setRfqFor] = useState<MarketListing | null>(null)
   const [sampleFor, setSampleFor] = useState<MarketListing | null>(null)
   const [buyFor, setBuyFor] = useState<MarketListing | null>(null)
+  const [passportFor, setPassportFor] = useState<Passport | null>(null)
+
+  const passportOf = (m: MarketListing) =>
+    m.passportNumber ? passports.find((p) => p.number === m.passportNumber) : undefined
 
   const rows = MARKET_LISTINGS.filter((m) => {
     if (mineral !== 'all' && m.mineral !== mineral) return false
@@ -110,11 +118,27 @@ export function BuyerMarketplace() {
                   <p className="text-xs text-forest-400">Grade {m.grade}%</p>
                 </div>
               </div>
-              {m.certified ? (
-                <Badge tone="success" dot>Certified</Badge>
-              ) : (
-                <Badge tone="neutral">Uncertified</Badge>
-              )}
+              {(() => {
+                const p = passportOf(m)
+                if (p && p.status === 'verified') {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setPassportFor(p)}
+                      title="View digital passport"
+                      className="group inline-flex items-center gap-1 rounded-full bg-teal-soft px-2.5 py-1 text-xs font-semibold text-teal transition-colors hover:brightness-95"
+                    >
+                      <ShieldCheck size={13} /> Certified
+                      <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+                    </button>
+                  )
+                }
+                return m.certified ? (
+                  <Badge tone="success" dot>Certified</Badge>
+                ) : (
+                  <Badge tone="neutral">Uncertified</Badge>
+                )
+              })()}
             </div>
 
             <div className="mt-4 flex items-center justify-between">
@@ -153,16 +177,16 @@ export function BuyerMarketplace() {
             </div>
 
             <div className="mt-auto space-y-2">
-              <Button block size="sm" leftIcon={<ShoppingCart size={15} />} onClick={() => setBuyFor(m)}>
+              <GatedButton block size="sm" leftIcon={<ShoppingCart size={15} />} onClick={() => setBuyFor(m)}>
                 Buy now
-              </Button>
+              </GatedButton>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="secondary" size="sm" leftIcon={<TestTube2 size={15} />} onClick={() => setSampleFor(m)}>
+                <GatedButton variant="secondary" size="sm" leftIcon={<TestTube2 size={15} />} onClick={() => setSampleFor(m)}>
                   Sample
-                </Button>
-                <Button variant="secondary" size="sm" leftIcon={<Send size={15} />} onClick={() => setRfqFor(m)}>
+                </GatedButton>
+                <GatedButton variant="secondary" size="sm" leftIcon={<Send size={15} />} onClick={() => setRfqFor(m)}>
                   Send RFQ
-                </Button>
+                </GatedButton>
               </div>
             </div>
           </Card>
@@ -183,6 +207,7 @@ export function BuyerMarketplace() {
         seller={sampleFor?.sellerName}
       />
       <BuyModal open={!!buyFor} onClose={() => setBuyFor(null)} listing={buyFor} />
+      <PassportDrawer open={!!passportFor} onClose={() => setPassportFor(null)} passport={passportFor} />
     </div>
   )
 }

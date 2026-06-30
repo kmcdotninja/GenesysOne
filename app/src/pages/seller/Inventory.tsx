@@ -14,11 +14,16 @@ import {
   type Column,
 } from '@/components/ui'
 import { MineralModal, SamplingModal } from '@/components/modals'
+import { GatedButton, useAccount } from '@/components/shell/AccountContext'
 import { useStore } from '@/store/AppStore'
 import type { InventoryItem } from '@/data/types'
 
 export function SellerInventory() {
-  const { inventory, samplingRequests, passports, requestPassport } = useStore()
+  const { inventory: allInventory, samplingRequests: allSampling, passports, requestPassport } = useStore()
+  const { verified } = useAccount()
+  // No inventory or sampling history until the account is verified.
+  const inventory = verified ? allInventory : []
+  const samplingRequests = verified ? allSampling : []
   const toast = useToast()
   const [mineralDrawer, setMineralDrawer] = useState<{ item: InventoryItem | null } | null>(null)
   const [sampleOpen, setSampleOpen] = useState(false)
@@ -76,6 +81,11 @@ export function SellerInventory() {
       cell: (r) => <span className="text-forest-500">{r.state} · {r.lga}</span>,
     },
     {
+      key: 'vetting',
+      header: 'Review',
+      cell: (r) => <StatusPill status={r.vetting === 'pending' ? 'pending' : 'approved'} />,
+    },
+    {
       key: 'passport',
       header: 'Passport',
       cell: (r) => {
@@ -124,12 +134,12 @@ export function SellerInventory() {
         subtitle="Track stocked minerals and schedule on-site sampling visits."
         actions={
           <>
-            <Button variant="secondary" leftIcon={<CalendarClock size={16} />} onClick={() => setSampleOpen(true)}>
+            <GatedButton variant="secondary" leftIcon={<CalendarClock size={16} />} onClick={() => setSampleOpen(true)}>
               Request sampling
-            </Button>
-            <Button leftIcon={<Plus size={16} />} onClick={() => setMineralDrawer({ item: null })}>
+            </GatedButton>
+            <GatedButton leftIcon={<Plus size={16} />} onClick={() => setMineralDrawer({ item: null })}>
               Add mineral
-            </Button>
+            </GatedButton>
           </>
         }
       />
@@ -146,9 +156,9 @@ export function SellerInventory() {
               title="No minerals yet"
               description="Add your first mineral to start building listings."
               action={
-                <Button leftIcon={<Plus size={16} />} onClick={() => setMineralDrawer({ item: null })}>
+                <GatedButton leftIcon={<Plus size={16} />} onClick={() => setMineralDrawer({ item: null })}>
                   Add mineral
-                </Button>
+                </GatedButton>
               }
             />
           }

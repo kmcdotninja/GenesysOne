@@ -17,18 +17,20 @@ import {
 } from '@/components/ui'
 import { SELLER_CO } from '@/data/mock'
 import { useStore } from '@/store/AppStore'
+import { useAccount } from '@/components/shell/AccountContext'
 import { money } from '@/lib/format'
 import type { Trade } from '@/data/types'
 
 export function SellerTrades() {
   const { trades, testResults, acceptOrder } = useStore()
+  const { verified } = useAccount()
   const toast = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const [query, setQuery] = useState('')
   const [active, setActive] = useState<Trade | null>(null)
 
-  // Trades where this account is the seller.
-  const myTrades = useMemo(() => trades.filter((t) => t.seller === SELLER_CO), [trades])
+  // Trades where this account is the seller — empty until verified.
+  const myTrades = useMemo(() => (verified ? trades : []).filter((t) => t.seller === SELLER_CO), [trades, verified])
 
   // Deep-link: open a specific order drawer when arriving via ?order=<orderNumber>.
   useEffect(() => {

@@ -167,12 +167,12 @@ export const TEST_RESULTS: TestResult[] = [
 
 // ---- Buyer: marketplace ----
 export const MARKET_LISTINGS: MarketListing[] = [
-  { id: 'm1', mineral: 'tin', grade: 71.4, quantity: 60, unit: 'ton', priceAmount: 28500000, priceCurrency: 'NGN', state: 'Plateau', status: 'approved', certified: true, sellerName: 'Jos Highland Minerals Ltd', sellerVerified: true, sellerRating: 4.8, deliveryMode: 'delivery', locationType: 'mine', trend: spark(2), createdAt: '12 Feb 2025' },
-  { id: 'm2', mineral: 'lithium', grade: 5.8, quantity: 120, unit: 'ton', priceAmount: 8400000, priceCurrency: 'NGN', state: 'Nasarawa', status: 'approved', certified: true, sellerName: 'Jos Highland Minerals Ltd', sellerVerified: true, sellerRating: 4.8, deliveryMode: 'delivery', locationType: 'warehouse', trend: spark(5), createdAt: '08 Feb 2025' },
-  { id: 'm3', mineral: 'gold', grade: 91.6, quantity: 12, unit: 'kg', priceAmount: 116000000, priceCurrency: 'NGN', state: 'Zamfara', status: 'approved', certified: true, sellerName: 'Sahel Mining Cooperative', sellerVerified: true, sellerRating: 4.6, deliveryMode: 'pickup', locationType: 'mine', trend: spark(1), createdAt: '11 Feb 2025' },
+  { id: 'm1', mineral: 'tin', grade: 71.4, quantity: 60, unit: 'ton', priceAmount: 28500000, priceCurrency: 'NGN', state: 'Plateau', status: 'approved', certified: true, sellerName: 'Jos Highland Minerals Ltd', sellerVerified: true, sellerRating: 4.8, deliveryMode: 'delivery', locationType: 'mine', trend: spark(2), createdAt: '12 Feb 2025', passportNumber: 'GO-SN-2026-000118' },
+  { id: 'm2', mineral: 'lithium', grade: 5.8, quantity: 120, unit: 'ton', priceAmount: 8400000, priceCurrency: 'NGN', state: 'Nasarawa', status: 'approved', certified: true, sellerName: 'Jos Highland Minerals Ltd', sellerVerified: true, sellerRating: 4.8, deliveryMode: 'delivery', locationType: 'warehouse', trend: spark(5), createdAt: '08 Feb 2025', passportNumber: 'GO-LI-2026-000124' },
+  { id: 'm3', mineral: 'gold', grade: 91.6, quantity: 12, unit: 'kg', priceAmount: 116000000, priceCurrency: 'NGN', state: 'Zamfara', status: 'approved', certified: true, sellerName: 'Sahel Mining Cooperative', sellerVerified: true, sellerRating: 4.6, deliveryMode: 'pickup', locationType: 'mine', trend: spark(1), createdAt: '11 Feb 2025', passportNumber: 'GO-AU-2026-000140' },
   { id: 'm4', mineral: 'lead', grade: 82.0, quantity: 200, unit: 'ton', priceAmount: 16800000, priceCurrency: 'NGN', state: 'Ebonyi', status: 'approved', certified: false, sellerName: 'Eastern Ore Traders', sellerVerified: false, sellerRating: 4.1, deliveryMode: 'delivery', locationType: 'warehouse', trend: spark(7), createdAt: '09 Feb 2025' },
-  { id: 'm5', mineral: 'zinc', grade: 55.3, quantity: 90, unit: 'ton', priceAmount: 9600000, priceCurrency: 'NGN', state: 'Kogi', status: 'approved', certified: true, sellerName: 'Confluence Metals', sellerVerified: true, sellerRating: 4.4, deliveryMode: 'delivery', locationType: 'mine', trend: spark(3), createdAt: '07 Feb 2025' },
-  { id: 'm6', mineral: 'columbite', grade: 64.2, quantity: 50, unit: 'ton', priceAmount: 24000000, priceCurrency: 'NGN', state: 'Nasarawa', status: 'approved', certified: true, sellerName: 'Eggon Mining Coop', sellerVerified: true, sellerRating: 4.7, deliveryMode: 'pickup', locationType: 'mine', trend: spark(4), createdAt: '06 Feb 2025' },
+  { id: 'm5', mineral: 'zinc', grade: 55.3, quantity: 90, unit: 'ton', priceAmount: 9600000, priceCurrency: 'NGN', state: 'Kogi', status: 'approved', certified: true, sellerName: 'Confluence Metals', sellerVerified: true, sellerRating: 4.4, deliveryMode: 'delivery', locationType: 'mine', trend: spark(3), createdAt: '07 Feb 2025', passportNumber: 'GO-ZN-2026-000142' },
+  { id: 'm6', mineral: 'columbite', grade: 64.2, quantity: 50, unit: 'ton', priceAmount: 24000000, priceCurrency: 'NGN', state: 'Nasarawa', status: 'approved', certified: true, sellerName: 'Eggon Mining Coop', sellerVerified: true, sellerRating: 4.7, deliveryMode: 'pickup', locationType: 'mine', trend: spark(4), createdAt: '06 Feb 2025', passportNumber: 'GO-NB-2026-000145' },
 ]
 
 // ---- Buyer: RFQs ----
@@ -276,6 +276,68 @@ export const COMPLIANCE_AGENTS: ComplianceAgent[] = [
 ]
 
 const stellarHash = (s: string) => s
+
+/** Compact builder for a fully-verified, anchored passport (marketplace seed). */
+function marketPassport(
+  number: string,
+  mineral: Mineral,
+  productName: string,
+  grade: number,
+  gradeLabel: string,
+  quantity: number,
+  unit: Passport['unit'],
+  seller: string,
+  siteName: string,
+  region: string,
+  gps: { lat: number; lng: number },
+  method: string,
+  batchId: string,
+  composition: Passport['composition'],
+  esg: NonNullable<Passport['esg']>,
+  carbonTotal: number,
+  carbonIntensity: number,
+): Passport {
+  const h = number.replace(/-/g, '').toUpperCase()
+  return {
+    id: `mp_${number}`,
+    number,
+    status: 'verified',
+    mineral,
+    productName,
+    grade,
+    gradeLabel,
+    quantity,
+    unit,
+    miningMethod: method,
+    batchId,
+    seller,
+    siteName,
+    region,
+    country: 'Nigeria',
+    gps,
+    requestedAt: '04 May 2026',
+    extractedAt: '08 May 2026',
+    verifiedAt: '12 May 2026',
+    updatedAt: '12 May 2026',
+    esg,
+    carbonTotal,
+    carbonIntensity,
+    composition,
+    journey: [
+      { key: 'extraction', date: '08 May 2026', location: siteName },
+      { key: 'processing', date: '09 May 2026', location: `${region} Plant` },
+      { key: 'transport', date: '11 May 2026', location: `${region} → Lagos Port` },
+      { key: 'export', date: '12 May 2026', location: 'Lagos Port' },
+    ],
+    custody: [
+      { id: `${number}-c1`, label: 'Sample sealed in tamper-proof QR bag', actor: 'Field agent · Compliance', at: '08 May 2026', txHash: (h + '0'.repeat(64)).slice(0, 64).toLowerCase() },
+      { id: `${number}-c2`, label: 'Passport approved & anchored on Stellar', actor: COMPLIANCE_CO, at: '12 May 2026' },
+    ],
+    chain: 'Stellar',
+    txHash: `stellar:${(h + 'GENESYSONESTELLARANCHOR2345672345672345672345').slice(0, 56)}`,
+    anchoredAt: '12 May 2026',
+  }
+}
 
 export const PASSPORTS: Passport[] = [
   {
@@ -395,10 +457,44 @@ export const PASSPORTS: Passport[] = [
     updatedAt: '26 Jun 2026',
     chain: 'Stellar',
   },
+  marketPassport('GO-AU-2026-000140', 'gold', 'Gold Concentrate', 91.6, '91.6% Au', 12, 'kg', 'Sahel Mining Cooperative', 'Anka Gold Field', 'Zamfara', { lat: 12.1136, lng: 5.9281 }, 'Alluvial', 'BTH-GLD-0140',
+    [{ label: 'Gold', formula: 'Au', value: 91.6 }, { label: 'Silver', formula: 'Ag', value: 6.2 }, { label: 'Copper', formula: 'Cu', value: 1.1 }, { label: 'Moisture', formula: 'H₂O', value: 0.3 }],
+    { overall: 90, environmental: 88, social: 91, governance: 92, supplyChain: 89 }, 6.1, 1.4),
+  marketPassport('GO-ZN-2026-000142', 'zinc', 'Sphalerite Concentrate', 55.3, '55.3% Zn', 90, 'ton', 'Confluence Metals', 'Lokoja Zinc Project', 'Kogi', { lat: 7.8023, lng: 6.7333 }, 'Open Pit', 'BTH-ZNC-0142',
+    [{ label: 'Zinc', formula: 'Zn', value: 55.3 }, { label: 'Iron', formula: 'Fe', value: 7.4 }, { label: 'Silica', formula: 'SiO₂', value: 12.1 }, { label: 'Sulphur', formula: 'S', value: 30.2 }, { label: 'Moisture', formula: 'H₂O', value: 0.5 }],
+    { overall: 89, environmental: 90, social: 88, governance: 90, supplyChain: 88 }, 12.4, 1.6),
+  marketPassport('GO-NB-2026-000145', 'columbite', 'Columbite Concentrate', 64.2, '64.2% Nb₂O₅', 50, 'ton', 'Eggon Mining Coop', 'Nasarawa Eggon Field', 'Nasarawa', { lat: 8.7333, lng: 8.55 }, 'Open Pit', 'BTH-COL-0145',
+    [{ label: 'Niobium Oxide', formula: 'Nb₂O₅', value: 64.2 }, { label: 'Tantalum Oxide', formula: 'Ta₂O₅', value: 8.9 }, { label: 'Iron', formula: 'Fe', value: 9.1 }, { label: 'Moisture', formula: 'H₂O', value: 0.6 }],
+    { overall: 91, environmental: 92, social: 90, governance: 91, supplyChain: 92 }, 10.2, 1.7),
 ]
 
 // ---- KYC / KYB review queue (all submissions land with Compliance) ----
 export const KYC_SUBMISSIONS: KycSubmission[] = [
+  {
+    id: 'kyc0',
+    company: SELLER_CO,
+    role: 'seller',
+    type: 'miner',
+    contactName: 'Amara Okwuosa',
+    contactEmail: 'kyc@joshighland.ng',
+    state: 'Plateau',
+    lga: 'Barkin Ladi',
+    incorporationType: 'registered_company',
+    incorporationDate: '12 Apr 2019',
+    tin: '01234567-0001',
+    license: { kind: 'Mining License', number: 'SMDF/ML/2019/0421', expiry: 'Apr 2027' },
+    documents: [
+      { name: 'Certificate of incorporation', kind: 'Incorporation', status: 'verified' },
+      { name: 'Mining license (SMDF)', kind: 'License', status: 'received' },
+      { name: 'Proof of business address', kind: 'Address', status: 'received' },
+    ],
+    directors: [
+      { name: 'Amara Okwuosa', role: 'Managing Director', nin: '20184792013', bvn: '22193845011', verification: 'verified' },
+      { name: 'Ibrahim Suleiman', role: 'Operations Director', nin: '30197462200', bvn: '22456710093', verification: 'pending' },
+    ],
+    status: 'under_review',
+    submittedAt: '25 Jun 2026',
+  },
   {
     id: 'kyc1',
     company: 'Plateau Tin Cooperative',
@@ -525,8 +621,8 @@ export const KYC_SUBMISSIONS: KycSubmission[] = [
 
 /** Per-account KYC status — Compliance can change a counterparty's status live. */
 export const KYC_STATUS: Record<Role, KycStatus> = {
-  seller: 'verified',
-  buyer: 'verified',
+  seller: 'under_review',
+  buyer: 'not_started',
   lab: 'under_review',
   compliance: 'verified',
 }

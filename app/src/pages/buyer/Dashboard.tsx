@@ -1,21 +1,87 @@
-import { ArrowUpRight, FileText, Store, TestTube2, Wallet } from 'lucide-react'
+import { ArrowUpRight, FileText, ShieldCheck, Store, TestTube2, Wallet } from 'lucide-react'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { KycSummary } from '@/components/KycSummary'
 import {
   AreaChart,
   Badge,
+  Button,
   ButtonLink,
   Card,
   CardHeader,
+  EmptyState,
   MineralIcon,
   StatCard,
   StatusPill,
 } from '@/components/ui'
+import { useAccount } from '@/components/shell/AccountContext'
+import { useKycDrawer } from '@/components/shell/KycDrawerContext'
 import { BUYER_CO, MARKET_LISTINGS, VOLUME_SERIES } from '@/data/mock'
 import { useStore } from '@/store/AppStore'
 import { compactMoney, money } from '@/lib/format'
 
 export function BuyerDashboard() {
+  const { isDemo, verified } = useAccount()
+  // Showcase data only appears once the account is verified.
+  return verified && isDemo ? <DemoBuyerDashboard /> : <CreatedBuyerDashboard />
+}
+
+/** A brand-new buyer account — all cards visible, each in an empty state. */
+function CreatedBuyerDashboard() {
+  const { walletNGN } = useStore()
+  const { company, contactName, verified } = useAccount()
+  const { openForm } = useKycDrawer()
+  const greet = contactName?.split(' ')[0] || company
+
+  return (
+    <div>
+      <PageHeader
+        title={`Welcome, ${greet}`}
+        subtitle="Here's your account. Complete verification to start trading."
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Wallet balance" value={compactMoney(verified ? walletNGN : 0)} sub="Fund to start trading" icon={<Wallet size={17} />} />
+        <StatCard label="Active trades" value={compactMoney(0)} sub="0 in escrow" icon={<ArrowUpRight size={17} />} />
+        <StatCard label="Open RFQs" value={0} sub="No quotes requested" icon={<FileText size={17} />} />
+        <StatCard label="Samples in transit" value={0} sub="None on the way" icon={<TestTube2 size={17} />} />
+      </div>
+
+      <div className="mt-5 grid gap-5 lg:grid-cols-3">
+        <div className="space-y-5 lg:col-span-2">
+          <Card>
+            <CardHeader title="Marketplace activity" subtitle="RFQs, samples and trades will appear here" />
+            <EmptyState
+              compact
+              variant="gem"
+              title={verified ? 'Start sourcing minerals' : 'Verify to start trading'}
+              description={
+                verified
+                  ? 'Browse certified listings, send RFQs and fund your wallet to trade with escrow protection.'
+                  : 'Complete verification to unlock purchasing, RFQs, sampling and withdrawals.'
+              }
+              action={
+                verified ? (
+                  <ButtonLink to="/buyer/marketplace" leftIcon={<Store size={16} />}>Browse marketplace</ButtonLink>
+                ) : (
+                  <Button leftIcon={<ShieldCheck size={16} />} onClick={openForm}>Complete verification</Button>
+                )
+              }
+            />
+          </Card>
+          <Card>
+            <CardHeader title="Recent RFQs" />
+            <EmptyState compact variant="inbox" title="No RFQs yet" description="Quotes you request from sellers will appear here." />
+          </Card>
+        </div>
+        <div className="space-y-5">
+          <KycSummary role="buyer" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DemoBuyerDashboard() {
   const { rfqs, sampleRequests, trades, walletNGN, walletUSD } = useStore()
   const activeTrades = trades.filter((t) => t.buyer === BUYER_CO && t.status === 'ongoing')
   const activeValue = activeTrades.reduce((s, t) => s + t.value, 0)
@@ -54,7 +120,15 @@ export function BuyerDashboard() {
               subtitle="Tonnage purchased over the last 18 weeks"
               action={<Badge tone="success" dot>+18%</Badge>}
             />
-            <AreaChart data={VOLUME_SERIES} height={180} line="#2f8868" fill="#a6e64d" className="mt-4" />
+            <AreaChart
+              data={VOLUME_SERIES}
+              height={180}
+              line="#2f8868"
+              fill="#a6e64d"
+              className="mt-4"
+              labels={VOLUME_SERIES.map((_, i) => `Wk ${i + 1}`)}
+              valueFormat={(v) => `${v} MT`}
+            />
           </Card>
 
           <Card>

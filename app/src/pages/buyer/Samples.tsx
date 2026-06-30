@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Check, Plus, Truck } from 'lucide-react'
 import { PageHeader } from '@/components/shell/PageHeader'
 import {
-  Button,
   Card,
   DataTable,
   Drawer,
@@ -13,6 +12,7 @@ import {
   type Column,
 } from '@/components/ui'
 import { SampleModal } from '@/components/modals'
+import { GatedButton, useAccount } from '@/components/shell/AccountContext'
 import { useStore } from '@/store/AppStore'
 import type { SampleRequest, SampleStatus } from '@/data/types'
 import { cn } from '@/lib/cn'
@@ -62,7 +62,9 @@ function Tracker({ status }: { status: SampleStatus }) {
 }
 
 export function BuyerSamples() {
-  const { sampleRequests } = useStore()
+  const { sampleRequests: allSamples } = useStore()
+  const { verified } = useAccount()
+  const sampleRequests = verified ? allSamples : []
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState<SampleRequest | null>(null)
   const highlight = useFocusHighlight('req')
@@ -110,9 +112,9 @@ export function BuyerSamples() {
         title="Sample requests"
         subtitle="Request physical samples from listings and track them to your door."
         actions={
-          <Button leftIcon={<Plus size={16} />} onClick={() => setOpen(true)}>
+          <GatedButton leftIcon={<Plus size={16} />} onClick={() => setOpen(true)}>
             Request sample
-          </Button>
+          </GatedButton>
         }
       />
 
@@ -129,9 +131,9 @@ export function BuyerSamples() {
               title="No sample requests"
               description="Request a physical sample from a marketplace listing."
               action={
-                <Button leftIcon={<Plus size={16} />} onClick={() => setOpen(true)}>
+                <GatedButton leftIcon={<Plus size={16} />} onClick={() => setOpen(true)}>
                   Request sample
-                </Button>
+                </GatedButton>
               }
             />
           }

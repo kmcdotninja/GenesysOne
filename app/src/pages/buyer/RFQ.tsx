@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { MessageSquare, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/shell/PageHeader'
 import {
-  Button,
   Card,
   DataTable,
   EmptyState,
@@ -11,6 +10,7 @@ import {
   type Column,
 } from '@/components/ui'
 import { RfqModal } from '@/components/modals'
+import { GatedButton, useAccount } from '@/components/shell/AccountContext'
 import { NegotiationDrawer } from '@/components/NegotiationDrawer'
 import { useStore } from '@/store/AppStore'
 import type { RFQ, RFQStatus } from '@/data/types'
@@ -26,7 +26,9 @@ const FILTERS: { key: RFQStatus | 'all'; label: string }[] = [
 ]
 
 export function BuyerRFQ() {
-  const { rfqs } = useStore()
+  const { rfqs: allRfqs } = useStore()
+  const { verified } = useAccount()
+  const rfqs = verified ? allRfqs : []
   const [filter, setFilter] = useState<RFQStatus | 'all'>('all')
   const [open, setOpen] = useState(false)
   const [negotiatingId, setNegotiatingId] = useState<string | null>(null)
@@ -96,9 +98,9 @@ export function BuyerRFQ() {
         title="Requests for quote"
         subtitle="Send RFQs to sellers and track them through to negotiation."
         actions={
-          <Button leftIcon={<Plus size={16} />} onClick={() => setOpen(true)}>
+          <GatedButton leftIcon={<Plus size={16} />} onClick={() => setOpen(true)}>
             Create RFQ
-          </Button>
+          </GatedButton>
         }
       />
 
@@ -132,9 +134,9 @@ export function BuyerRFQ() {
               title={filter === 'all' ? 'No RFQs yet' : `No ${filter} RFQs`}
               description="Send a request for quote to a seller to get started."
               action={
-                <Button leftIcon={<Plus size={16} />} onClick={() => setOpen(true)}>
+                <GatedButton leftIcon={<Plus size={16} />} onClick={() => setOpen(true)}>
                   Create RFQ
-                </Button>
+                </GatedButton>
               }
             />
           }

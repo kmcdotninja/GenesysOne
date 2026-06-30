@@ -45,7 +45,8 @@ const captured = (p: Passport) =>
   p.extractedAt != null || (p.custody ?? []).some((c) => /capture|sealed/i.test(c.label))
 
 export function CompliancePassports() {
-  const { passports, agents, assignAgent, submitFieldCapture, approvePassport, rejectPassport } = useStore()
+  const { passports, agents, assignAgent, submitFieldCapture, approvePassport, rejectPassport, vettingQueue, approveMineralVetting } = useStore()
+  const pendingVetting = vettingQueue.filter((v) => v.status === 'pending')
   const toast = useToast()
   const highlight = useFocusHighlight('p')
   const [filter, setFilter] = useState<PassportStatus | 'all'>('all')
@@ -74,6 +75,13 @@ export function CompliancePassports() {
       setAgentId('')
       setReason('')
       setPhotos('4')
+      setEvaluation('')
+      setEsg({
+        environmental: String(active.esg?.environmental ?? 92),
+        social: String(active.esg?.social ?? 90),
+        governance: String(active.esg?.governance ?? 91),
+        supplyChain: String(active.esg?.supplyChain ?? 93),
+      })
     }
   }, [activeId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -87,11 +95,17 @@ export function CompliancePassports() {
   }
   const doCapture = () => {
     if (!active) return
+    const e = Number(esg.environmental) || 0
+    const s = Number(esg.social) || 0
+    const g = Number(esg.governance) || 0
+    const sc = Number(esg.supplyChain) || 0
     submitFieldCapture(active.id, {
       gps: { lat: Number(lat) || active.gps.lat, lng: Number(lng) || active.gps.lng },
       photos: Number(photos) || undefined,
+      esg: { environmental: e, social: s, governance: g, supplyChain: sc, overall: Math.round((e + s + g + sc) / 4) },
+      evaluation: evaluation.trim() || undefined,
     })
-    toast.success('Field capture saved', 'GPS, photos and sealed sample recorded.')
+    toast.success('Field capture saved', 'GPS, photos, ESG and sealed sample recorded.')
   }
   const doApprove = () => {
     if (!active) return
@@ -136,6 +150,37 @@ export function CompliancePassports() {
         title="Digital Mineral Passports"
         subtitle="Assign field agents, run verification, and anchor approved passports on Stellar."
       />
+
+      {pendingVetting.length > 0 && (
+        <Card className="mb-5">
+          <SectionLabel hint="Approve to issue a Digital Passport and unlock the seller's listing.">
+            Mineral vetting requests
+          </SectionLabel>
+          <div className="space-y-2.5">
+            {pendingVetting.map((v) => (
+              <div key={v.id} className="flex items-center gap-3 rounded-2xl border border-hair p-3">
+                <MineralIcon mineral={v.mineral} size="lg" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold capitalize text-forest">{v.mineral}</p>
+                  <p className="text-xs text-forest-400">
+                    {v.company} · {v.quantity} {v.unit} · grade {v.grade}% · {v.state}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  leftIcon={<ShieldCheck size={15} />}
+                  onClick={() => {
+                    approveMineralVetting(v.id)
+                    toast.success('Mineral vetted', `${v.company}'s ${v.mineral} is approved — Digital Passport issued.`)
+                  }}
+                >
+                  Approve &amp; issue passport
+                </Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
@@ -211,17 +256,29 @@ export function CompliancePassports() {
             {/* ---- IN VERIFICATION: capture, then decide ---- */}
             {active.status === 'in_verification' && !captured(active) && (
               <div className="rounded-2xl border border-hair p-4">
-                <SectionLabel>Field capture · {active.agentName}</SectionLabel>
+                <SectionLabel>On-field evaluation · {active.agentName}</SectionLabel>
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="GPS latitude" required><Input value={lat} onChange={(e) => setLat(e.target.value)} /></Field>
                   <Field label="GPS longitude" required><Input value={lng} onChange={(e) => setLng(e.target.value)} /></Field>
-                  <Field label="Site photos" required><Input type="number" value={photos} onChange={(e) => setPhotos(e.target.value)} /></Field>
+                  <Field label="Compliance photos" required><Input type="number" value={photos} onChange={(e) => setPhotos(e.target.value)} /></Field>
                 </div>
-                <p className="mt-2 flex items-center gap-1.5 text-xs text-forest-400">
+
+                <p className="mb-2 mt-4 text-[12px] font-bold uppercase tracking-wide text-forest-400">ESG assessment</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Environmental"><Input type="number" value={esg.environmental} onChange={(e) => setEsg((v) => ({ ...v, environmental: e.target.value }))} /></Field>
+                  <Field label="Social (rights / labour)"><Input type="number" value={esg.social} onChange={(e) => setEsg((v) => ({ ...v, social: e.target.value }))} /></Field>
+                  <Field label="Governance"><Input type="number" value={esg.governance} onChange={(e) => setEsg((v) => ({ ...v, governance: e.target.value }))} /></Field>
+                  <Field label="Supply chain"><Input type="number" value={esg.supplyChain} onChange={(e) => setEsg((v) => ({ ...v, supplyChain: e.target.value }))} /></Field>
+                </div>
+                <Field label="Evaluation note" optional className="mt-3">
+                  <Textarea rows={2} placeholder="Child-labour-free, ethical sourcing confirmed, site conditions…" value={evaluation} onChange={(e) => setEvaluation(e.target.value)} />
+                </Field>
+
+                <p className="mt-3 flex items-center gap-1.5 text-xs text-forest-400">
                   <MapPin size={13} /> Sample will be sealed in a tamper-proof QR bag and sent to the lab.
                 </p>
                 <Button className="mt-4" block leftIcon={<Send size={16} />} onClick={doCapture}>
-                  Submit field capture
+                  Submit on-field evaluation
                 </Button>
               </div>
             )}

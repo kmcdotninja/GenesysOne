@@ -5,11 +5,14 @@ export interface KycDrawerApi {
   openForm: () => void
   /** Open the KYC status drawer (review submitted details). */
   openStatus: () => void
+  /** Open the "verification required" modal blocking a restricted action. */
+  openVerifyPrompt: (action?: string) => void
 }
 
 export const KycDrawerContext = createContext<KycDrawerApi>({
   openForm: () => {},
   openStatus: () => {},
+  openVerifyPrompt: () => {},
 })
 
 export function useKycDrawer(): KycDrawerApi {

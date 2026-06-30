@@ -6,7 +6,7 @@ import { Avatar, MineralIcon } from '@/components/ui'
 import { ROLE_META, ROLES, ROLE_NAV, ROLE_TAGLINE } from '@/data/nav'
 import { BUYER_CO, CURRENT_USER, MARKET_LISTINGS, SELLER_CO } from '@/data/mock'
 import { useStore } from '@/store/AppStore'
-import type { Role } from '@/data/types'
+import type { Role, UserAccount } from '@/data/types'
 import { money } from '@/lib/format'
 import { cn } from '@/lib/cn'
 
@@ -190,14 +190,32 @@ function GlobalSearch({ role }: { role: Role }) {
 function RoleSwitcher({ role }: { role: Role }) {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
-  const meta = ROLE_META[role]
+  const { accounts, activeAccountId, switchAccount } = useStore()
+  const activeAccount = accounts.find((a) => a.id === activeAccountId && a.role === role)
+
+  const pickDemo = (r: Role) => {
+    setOpen(false)
+    switchAccount(null)
+    navigate(ROLE_META[r].base)
+  }
+  const pickAccount = (a: UserAccount) => {
+    setOpen(false)
+    switchAccount(a.id)
+    navigate(ROLE_META[a.role].base)
+  }
+
   return (
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1.5 rounded-full border border-hair bg-white py-1 pl-1.5 pr-2.5 text-sm font-semibold text-forest transition-colors hover:bg-panel"
       >
-        <span className="rounded-full bg-lime-100 px-2 py-0.5 text-xs font-bold text-forest-500">{meta.label}</span>
+        <span className="rounded-full bg-lime-100 px-2 py-0.5 text-xs font-bold text-forest-500">{ROLE_META[role].label}</span>
+        {activeAccount && (
+          <span className="hidden max-w-[140px] truncate text-xs font-semibold text-forest-500 sm:block">
+            {activeAccount.company}
+          </span>
+        )}
         <ChevronDown size={15} className="text-forest-300" />
       </button>
       {open && (
@@ -205,19 +223,16 @@ function RoleSwitcher({ role }: { role: Role }) {
           <CloseLayer onClose={() => setOpen(false)} />
           <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-72 origin-top-left animate-pop rounded-3xl border border-hair bg-white p-2 shadow-pop">
             <p className="px-3 pb-1.5 pt-2 text-[11px] font-bold uppercase tracking-wide text-forest-400">
-              Switch interface
+              Demo interfaces
             </p>
             {ROLES.map((r) => {
               const m = ROLE_META[r]
               const Icon = ROLE_TAGLINE[r].icon
-              const active = r === role
+              const active = activeAccountId === null && r === role
               return (
                 <button
                   key={r}
-                  onClick={() => {
-                    setOpen(false)
-                    navigate(m.base)
-                  }}
+                  onClick={() => pickDemo(r)}
                   className={cn(
                     'flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors',
                     active ? 'bg-forest-50' : 'hover:bg-panel',
@@ -234,6 +249,38 @@ function RoleSwitcher({ role }: { role: Role }) {
                 </button>
               )
             })}
+
+            {accounts.length > 0 && (
+              <>
+                <p className="px-3 pb-1.5 pt-3 text-[11px] font-bold uppercase tracking-wide text-forest-400">
+                  Your accounts
+                </p>
+                {accounts.map((a) => {
+                  const active = a.id === activeAccountId
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => pickAccount(a)}
+                      className={cn(
+                        'flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors',
+                        active ? 'bg-forest-50' : 'hover:bg-panel',
+                      )}
+                    >
+                      <span className={cn('flex h-9 w-9 items-center justify-center rounded-xl', active ? 'bg-forest text-lime' : 'bg-panel text-forest-500')}>
+                        <Building2 size={16} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-forest">{a.company}</span>
+                        <span className="block truncate text-xs text-forest-400">
+                          {ROLE_META[a.role].label} · {a.kyc === 'verified' ? 'Verified' : 'Unverified'}
+                        </span>
+                      </span>
+                      {active && <Check size={16} className="text-forest" />}
+                    </button>
+                  )
+                })}
+              </>
+            )}
           </div>
         </>
       )}

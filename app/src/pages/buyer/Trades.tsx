@@ -19,11 +19,13 @@ import {
 } from '@/components/ui'
 import { BUYER_CO } from '@/data/mock'
 import { useStore } from '@/store/AppStore'
+import { useAccount } from '@/components/shell/AccountContext'
 import { money } from '@/lib/format'
 import type { Trade } from '@/data/types'
 
 export function BuyerTrades() {
   const { trades, testResults, releaseEscrow, passports } = useStore()
+  const { verified } = useAccount()
   const toast = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const [tab, setTab] = useState<'active' | 'history'>('active')
@@ -31,8 +33,8 @@ export function BuyerTrades() {
   const [active, setActive] = useState<Trade | null>(null)
   const result = active ? testResults.find((r) => r.batchId === active.batchId) : undefined
 
-  // Trades where this account is the buyer.
-  const myTrades = trades.filter((t) => t.buyer === BUYER_CO)
+  // Trades where this account is the buyer — empty until verified.
+  const myTrades = (verified ? trades : []).filter((t) => t.buyer === BUYER_CO)
 
   // Deep-link: open a specific order drawer when arriving via ?order=<orderNumber>.
   useEffect(() => {

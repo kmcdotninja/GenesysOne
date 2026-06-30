@@ -1,0 +1,13 @@
+{
+  "name": "genesysone",
+  "private": true,
+  "version": "0.0.0",
+  "description": "GenesysOne — runs the Vite app that lives in ./app",
+  "scripts": {
+    "dev": "npm --prefix app run dev",
+    "build": "npm --prefix app run build",
+    "preview": "npm --prefix app run preview",
+    "lint": "npm --prefix app run lint",
+    "setup": "npm --prefix app install"
+  }
+}

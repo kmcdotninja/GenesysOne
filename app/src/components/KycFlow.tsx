@@ -13,9 +13,10 @@ import {
   faceUrl,
   useToast,
 } from '@/components/ui'
-import { ID_DOCUMENT_TYPE, INCORPORATION_TYPE } from '@/data/types'
-import { DIRECTORS, NIGERIAN_STATES, lgasFor } from '@/data/mock'
-import { newId } from '@/store/AppStore'
+import { ID_DOCUMENT_TYPE, INCORPORATION_TYPE, type KycDirectorRef, type Role } from '@/data/types'
+import { NIGERIAN_STATES, lgasFor } from '@/data/mock'
+import { ROLE_META } from '@/data/nav'
+import { newId, useStore } from '@/store/AppStore'
 import { cn } from '@/lib/cn'
 
 function titleCase(s: string) {
@@ -45,22 +46,6 @@ const EMPTY_FORM: PersonForm = {
 }
 
 const fullName = (p: KycPerson) => `${p.firstName} ${p.lastName}`.trim()
-
-function seedPeople(): KycPerson[] {
-  return DIRECTORS.map((d) => {
-    const [firstName, ...rest] = d.name.split(' ')
-    return {
-      id: d.id,
-      firstName,
-      lastName: rest.join(' '),
-      role: d.role,
-      dob: '',
-      nationality: 'Nigeria',
-      email: '',
-      phone: '',
-    }
-  })
-}
 
 function VerifyChip({ label }: { label: string }) {
   const [verified, setVerified] = useState(label === 'NIN' || label === 'BVN')
@@ -121,18 +106,30 @@ function HStepper({
 
 export function KycFlow({
   variant = 'company',
+  role = 'seller',
   onClose,
 }: {
   variant?: 'company' | 'lab'
+  role?: Role
   onClose?: () => void
 }) {
   const toast = useToast()
+  const store = useStore()
+  // A user-created account starts blank — only the demo interfaces are prefilled.
+  const account = store.accounts.find((a) => a.id === store.activeAccountId)
   const [step, setStep] = useState(0)
   const [state, setState] = useState('Plateau')
   const [lga, setLga] = useState(lgasFor('Plateau')[0])
-  const [people, setPeople] = useState<KycPerson[]>(seedPeople)
+  const [people, setPeople] = useState<KycPerson[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<PersonForm>(EMPTY_FORM)
+
+  // Company-profile fields — captured so Compliance reviews what was actually sent.
+  const [companyName, setCompanyName] = useState(account ? account.company : ROLE_META[role].company)
+  const [address, setAddress] = useState('')
+  const [incType, setIncType] = useState<string>(INCORPORATION_TYPE[0])
+  const [incDate, setIncDate] = useState('')
+  const [tin, setTin] = useState('')
 
   const isLab = variant === 'lab'
   const profileLabel = isLab ? 'Lab Profile' : 'Company Profile'
@@ -187,7 +184,27 @@ export function KycFlow({
   ]
 
   const submit = () => {
-    toast.success('KYC submitted', 'Your verification is now under review.')
+    // A user-created account verifies itself; the built-in demo roles route to compliance.
+    const directors: KycDirectorRef[] = people.map((p) => ({
+      name: fullName(p),
+      role: p.role || (isLab ? 'Personnel' : 'Director'),
+      nin: '',
+      bvn: '',
+      verification: 'pending',
+    }))
+    const details = {
+      company: companyName.trim() || ROLE_META[role].company,
+      state,
+      lga,
+      incorporationType: incType,
+      incorporationDate: incDate || '—',
+      tin: tin.trim() || undefined,
+      directors,
+    }
+    const account = store.accounts.find((a) => a.id === store.activeAccountId)
+    if (account) store.submitAccountKyc(account.id, details)
+    else store.submitKyc(role, details)
+    toast.success('Submitted for review', `${details.company}'s KYC is now with the compliance team.`)
     onClose?.()
   }
 
@@ -203,13 +220,13 @@ export function KycFlow({
             </SectionLabel>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={isLab ? 'Lab Name' : 'Company Name'} required className="sm:col-span-2">
-                <Input defaultValue={isLab ? 'Geneva Assay Laboratories' : 'Jos Highland Minerals Ltd'} />
+                <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
               </Field>
               <Field label="Description" optional className="sm:col-span-2">
-                <Textarea rows={3} defaultValue="Accredited minerals operation across Nigeria's tin belt." />
+                <Textarea rows={3} defaultValue="" placeholder="Briefly describe your operation" />
               </Field>
               <Field label="Address" required className="sm:col-span-2">
-                <Input defaultValue="Plot 14, Mining Belt Road" />
+                <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, area" />
               </Field>
               <Field label="State" required>
                 <Select value={state} onChange={(e) => { setState(e.target.value); setLga(lgasFor(e.target.value)[0]) }}>
@@ -232,13 +249,15 @@ export function KycFlow({
             <SectionLabel>Other {isLab ? 'Lab' : 'Company'} Details</SectionLabel>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Incorporation Type" required>
-                <Select>{INCORPORATION_TYPE.map((t) => <option key={t} value={t}>{titleCase(t)}</option>)}</Select>
+                <Select value={incType} onChange={(e) => setIncType(e.target.value)}>
+                  {INCORPORATION_TYPE.map((t) => <option key={t} value={t}>{titleCase(t)}</option>)}
+                </Select>
               </Field>
               <Field label="Incorporation Date" required>
-                <DatePicker defaultValue="2019-04-12" />
+                <DatePicker value={incDate} onChange={setIncDate} />
               </Field>
               <Field label="TIN" optional>
-                <Input placeholder="e.g. 01234567-0001" />
+                <Input value={tin} onChange={(e) => setTin(e.target.value)} placeholder="e.g. 01234567-0001" />
               </Field>
               <Field label="Incorporation Document" required>
                 <FileField label="CAC certificate" />

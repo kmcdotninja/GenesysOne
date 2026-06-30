@@ -3,6 +3,7 @@ import { ArrowRight, ChevronRight, ShieldCheck, Sparkles } from 'lucide-react'
 import { Mark } from '@/components/Logo'
 import { ROLE_META, ROLE_NAV } from '@/data/nav'
 import { StatusPill } from '@/components/ui'
+import { useStore } from '@/store/AppStore'
 import { useKycDrawer } from './KycDrawerContext'
 import type { Role } from '@/data/types'
 import { cn } from '@/lib/cn'
@@ -10,7 +11,11 @@ import { cn } from '@/lib/cn'
 export function Sidebar({ role }: { role: Role }) {
   const meta = ROLE_META[role]
   const nav = ROLE_NAV[role]
-  const verified = meta.kyc === 'verified'
+  const { kyc } = useStore()
+  // Compliance is the verifier (admin) — it has no KYC of its own.
+  const isCompliance = role === 'compliance'
+  const kycStatus = kyc[role]
+  const verified = kycStatus === 'verified'
   const { openForm, openStatus } = useKycDrawer()
 
   return (
@@ -23,19 +28,21 @@ export function Sidebar({ role }: { role: Role }) {
           </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-forest">{meta.company}</p>
-            <p className="text-xs text-forest-400">{meta.label} account</p>
+            <p className="text-xs text-forest-400">{isCompliance ? 'Admin · Verification authority' : `${meta.label} account`}</p>
           </div>
         </div>
-        <button
-          onClick={openStatus}
-          className="group mt-3 flex w-full items-center justify-between border-t border-hair pt-3 transition-opacity hover:opacity-80"
-        >
-          <span className="text-xs font-medium text-forest-400">KYC status</span>
-          <span className="flex items-center gap-1">
-            <StatusPill status={meta.kyc} />
-            <ChevronRight size={14} className="text-forest-300 transition-transform group-hover:translate-x-0.5" />
-          </span>
-        </button>
+        {!isCompliance && (
+          <button
+            onClick={openStatus}
+            className="group mt-3 flex w-full items-center justify-between border-t border-hair pt-3 transition-opacity hover:opacity-80"
+          >
+            <span className="text-xs font-medium text-forest-400">KYC status</span>
+            <span className="flex items-center gap-1">
+              <StatusPill status={kycStatus} />
+              <ChevronRight size={14} className="text-forest-300 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -78,7 +85,17 @@ export function Sidebar({ role }: { role: Role }) {
 
       {/* Footer nudge */}
       <div className="mt-auto">
-        {verified ? (
+        {isCompliance ? (
+          <div className="rounded-3xl bg-forest p-4 text-white">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-lime">
+              <ShieldCheck size={18} />
+            </span>
+            <p className="mt-3 text-sm font-semibold">Compliance console</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-white/70">
+              You verify accounts, run on-field checks and issue blockchain-anchored passports.
+            </p>
+          </div>
+        ) : verified ? (
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-lime-300 via-lime to-lime-200 p-4 shadow-soft">
             <div className="pointer-events-none absolute -right-8 -bottom-8 h-24 w-24 rounded-full bg-white/40 blur-2xl" />
             <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-forest text-lime">

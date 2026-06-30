@@ -1,22 +1,88 @@
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, Boxes, Plus, Store, TrendingUp } from 'lucide-react'
+import { ArrowUpRight, Boxes, Plus, ShieldCheck, Store, TrendingUp } from 'lucide-react'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { KycSummary } from '@/components/KycSummary'
 import {
   AreaChart,
   Badge,
+  Button,
   ButtonLink,
   Card,
   CardHeader,
+  EmptyState,
   MineralIcon,
   StatCard,
   StatusPill,
 } from '@/components/ui'
+import { useAccount } from '@/components/shell/AccountContext'
+import { useKycDrawer } from '@/components/shell/KycDrawerContext'
 import { PRICE_SERIES, SELLER_CO } from '@/data/mock'
 import { useStore } from '@/store/AppStore'
 import { compactMoney, money } from '@/lib/format'
 
 export function SellerDashboard() {
+  const { isDemo, verified } = useAccount()
+  // Showcase data only appears once the account is verified.
+  return verified && isDemo ? <DemoSellerDashboard /> : <CreatedSellerDashboard />
+}
+
+/** A brand-new seller account — all cards visible, each in an empty state. */
+function CreatedSellerDashboard() {
+  const { inventory, listings } = useStore()
+  const { company, contactName, verified } = useAccount()
+  const { openForm } = useKycDrawer()
+  const greet = contactName?.split(' ')[0] || company
+
+  return (
+    <div>
+      <PageHeader
+        title={`Welcome, ${greet}`}
+        subtitle="Here's your account. Complete verification to start trading."
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Inventory items" value={verified ? inventory.length : 0} sub="Nothing stocked yet" icon={<Boxes size={17} />} />
+        <StatCard label="Active listings" value={verified ? listings.filter((l) => l.status === 'approved').length : 0} sub="No live listings" icon={<Store size={17} />} />
+        <StatCard label="Ongoing trades" value={compactMoney(0)} sub="0 in escrow" icon={<TrendingUp size={17} />} />
+        <StatCard label="Volume traded" value="0 MT" sub="No trades yet" icon={<ArrowUpRight size={17} />} />
+      </div>
+
+      <div className="mt-5 grid gap-5 lg:grid-cols-3">
+        <div className="space-y-5 lg:col-span-2">
+          <Card>
+            <CardHeader title="Activity" subtitle="Listings and trades will appear here" />
+            <EmptyState
+              compact
+              variant="gem"
+              title={verified ? 'No activity yet' : 'Verify to start trading'}
+              description={
+                verified
+                  ? 'Add a mineral and create a listing to start receiving RFQs from verified buyers.'
+                  : 'Complete verification to unlock inventory, listings, trading and your dashboard insights.'
+              }
+              action={
+                verified ? (
+                  <ButtonLink to="/seller/inventory" leftIcon={<Plus size={16} />}>Add mineral</ButtonLink>
+                ) : (
+                  <Button leftIcon={<ShieldCheck size={16} />} onClick={openForm}>Complete verification</Button>
+                )
+              }
+            />
+          </Card>
+          <Card>
+            <CardHeader title="Recent trades" />
+            <EmptyState compact variant="inbox" title="No trades yet" description="Your ongoing and completed trades will show up here." />
+          </Card>
+        </div>
+        <div className="space-y-5">
+          <KycSummary role="seller" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DemoSellerDashboard() {
   const { inventory, listings, trades } = useStore()
   const myTrades = trades.filter((t) => t.seller === SELLER_CO)
   const activeListings = listings.filter((l) => l.status === 'approved').length
@@ -87,7 +153,13 @@ export function SellerDashboard() {
               </span>
               <span className="mb-1 text-sm font-medium text-forest-400">/ ton</span>
             </div>
-            <AreaChart data={PRICE_SERIES} height={180} className="mt-4" />
+            <AreaChart
+              data={PRICE_SERIES}
+              height={180}
+              className="mt-4"
+              labels={PRICE_SERIES.map((_, i) => `Day ${i + 1}`)}
+              valueFormat={(v) => `₦${Math.round(v * 5240).toLocaleString()}`}
+            />
           </Card>
 
           <Card>

@@ -13,13 +13,13 @@ import { PageHeader } from '@/components/shell/PageHeader'
 import {
   AreaChart,
   Badge,
-  Button,
   Card,
   DataTable,
   StatusPill,
   type Column,
 } from '@/components/ui'
 import { AddFundsModal, WithdrawModal } from '@/components/modals'
+import { GatedButton, useAccount } from '@/components/shell/AccountContext'
 import { useStore } from '@/store/AppStore'
 import { PRICE_SERIES, VOLUME_SERIES } from '@/data/mock'
 import type { Transaction } from '@/data/types'
@@ -68,6 +68,7 @@ function BalanceCard({
           line={dark ? '#a6e64d' : '#2f8868'}
           fill="#a6e64d"
           showEndDot={false}
+          interactive={false}
           className="mt-4 -mb-2 opacity-90"
         />
       )}
@@ -76,7 +77,12 @@ function BalanceCard({
 }
 
 export function BuyerWallet() {
-  const { transactions, walletNGN, walletUSD } = useStore()
+  const store = useStore()
+  const { verified } = useAccount()
+  // No funds or history until the account is verified.
+  const walletNGN = verified ? store.walletNGN : 0
+  const walletUSD = verified ? store.walletUSD : 0
+  const transactions = verified ? store.transactions : []
   const [tab, setTab] = useState<(typeof FILTERS)[number]['key']>('all')
   const [addOpen, setAddOpen] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
@@ -137,12 +143,12 @@ export function BuyerWallet() {
         subtitle="Fund your wallet, manage escrow and review every transaction."
         actions={
           <>
-            <Button variant="secondary" leftIcon={<Minus size={16} />} onClick={() => setWithdrawOpen(true)}>
+            <GatedButton variant="secondary" leftIcon={<Minus size={16} />} onClick={() => setWithdrawOpen(true)}>
               Withdraw
-            </Button>
-            <Button leftIcon={<Plus size={16} />} onClick={() => setAddOpen(true)}>
+            </GatedButton>
+            <GatedButton leftIcon={<Plus size={16} />} onClick={() => setAddOpen(true)}>
               Add funds
-            </Button>
+            </GatedButton>
           </>
         }
       />

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui'
 import { NegotiationDrawer } from '@/components/NegotiationDrawer'
 import { useStore } from '@/store/AppStore'
+import { useAccount } from '@/components/shell/AccountContext'
 import { SELLER_CO } from '@/data/mock'
 import { cn } from '@/lib/cn'
 import { useFocusHighlight } from '@/lib/useFocusHighlight'
@@ -26,8 +27,9 @@ export function SellerRequests() {
   const highlight = useFocusHighlight('req')
 
   // Only requests addressed to this seller account.
-  const myRfqs = rfqs.filter((r) => r.seller === SELLER_CO)
-  const mySamples = sampleRequests.filter((r) => r.seller === SELLER_CO)
+  const { verified } = useAccount()
+  const myRfqs = (verified ? rfqs : []).filter((r) => r.seller === SELLER_CO)
+  const mySamples = (verified ? sampleRequests : []).filter((r) => r.seller === SELLER_CO)
   const openRfqs = myRfqs.filter((r) => r.status === 'pending' || r.status === 'negotiation').length
   const pendingSamples = mySamples.filter((r) => r.status !== 'delivered').length
 

@@ -1,5 +1,77 @@
 import { useId } from 'react'
+import {
+  Area,
+  AreaChart as RechartsAreaChart,
+  CartesianGrid,
+  ReferenceDot,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from './chart'
 import { cn } from '@/lib/cn'
+
+/** shadcn-style area chart (Recharts) — interactive crosshair + themed tooltip. */
+export function AreaChart({
+  data,
+  height = 200,
+  line = '#0c5c43',
+  fill = '#a6e64d',
+  className,
+  showEndDot = true,
+  labels,
+  valueFormat = (v) => `${Math.round(v).toLocaleString()}`,
+  interactive = true,
+}: {
+  data: number[]
+  height?: number
+  line?: string
+  fill?: string
+  className?: string
+  showEndDot?: boolean
+  labels?: string[]
+  valueFormat?: (v: number) => string
+  interactive?: boolean
+}) {
+  const id = useId().replace(/:/g, '')
+  const chartData = data.map((v, i) => ({ x: labels?.[i] ?? `${i + 1}`, v }))
+  const config: ChartConfig = { v: { color: line } }
+  const last = chartData[chartData.length - 1]
+
+  return (
+    <ChartContainer config={config} className={cn('w-full', className)} style={{ height }}>
+      <RechartsAreaChart data={chartData} margin={{ top: 10, right: 6, left: 6, bottom: 0 }}>
+        <defs>
+          <linearGradient id={`area-${id}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={fill} stopOpacity={0.45} />
+            <stop offset="95%" stopColor={fill} stopOpacity={0.03} />
+          </linearGradient>
+        </defs>
+        {interactive && <CartesianGrid vertical={false} strokeDasharray="3 3" />}
+        <XAxis dataKey="x" hide padding={{ left: 6, right: 6 }} />
+        <YAxis hide domain={['dataMin - 2', 'dataMax + 2']} />
+        {interactive && (
+          <ChartTooltip
+            cursor={{ stroke: line, strokeOpacity: 0.35, strokeDasharray: '3 4' }}
+            content={<ChartTooltipContent valueFormat={valueFormat} />}
+          />
+        )}
+        <Area
+          dataKey="v"
+          type="natural"
+          stroke={line}
+          strokeWidth={2.5}
+          fill={`url(#area-${id})`}
+          dot={false}
+          activeDot={interactive ? { r: 4.5, fill: line, stroke: '#fff', strokeWidth: 2 } : false}
+          isAnimationActive
+        />
+        {showEndDot && last && (
+          <ReferenceDot x={last.x} y={last.v} r={4} fill={line} stroke="#fff" strokeWidth={2} />
+        )}
+      </RechartsAreaChart>
+    </ChartContainer>
+  )
+}
 
 function smoothPath(points: { x: number; y: number }[]): string {
   if (points.length < 2) return ''
@@ -11,83 +83,6 @@ function smoothPath(points: { x: number; y: number }[]): string {
     d += ` C ${cx} ${p0.y}, ${cx} ${p1.y}, ${p1.x} ${p1.y}`
   }
   return d
-}
-
-export function AreaChart({
-  data,
-  height = 200,
-  line = '#0c5c43',
-  fill = '#a6e64d',
-  className,
-  showEndDot = true,
-}: {
-  data: number[]
-  height?: number
-  line?: string
-  fill?: string
-  className?: string
-  showEndDot?: boolean
-}) {
-  const id = useId().replace(/:/g, '')
-  const W = 600
-  const H = 220
-  const padY = 18
-  const min = Math.min(...data)
-  const max = Math.max(...data)
-  const range = max - min || 1
-
-  const points = data.map((v, i) => ({
-    x: (i / (data.length - 1)) * W,
-    y: padY + (1 - (v - min) / range) * (H - padY * 2),
-  }))
-
-  const linePath = smoothPath(points)
-  const areaPath = `${linePath} L ${W} ${H} L 0 ${H} Z`
-  const end = points[points.length - 1]
-
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-      className={cn('w-full', className)}
-      style={{ height }}
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id={`fill-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={fill} stopOpacity="0.45" />
-          <stop offset="100%" stopColor={fill} stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
-      <path d={areaPath} fill={`url(#fill-${id})`} />
-      <path
-        d={linePath}
-        fill="none"
-        stroke={line}
-        strokeWidth={2.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-      />
-      {showEndDot && (
-        <>
-          <line
-            x1={end.x}
-            y1={0}
-            x2={end.x}
-            y2={H}
-            stroke={line}
-            strokeWidth={1}
-            strokeDasharray="3 4"
-            opacity={0.35}
-            vectorEffect="non-scaling-stroke"
-          />
-          <circle cx={end.x} cy={end.y} r={4.5} fill={line} />
-          <circle cx={end.x} cy={end.y} r={8} fill={line} opacity={0.18} />
-        </>
-      )}
-    </svg>
-  )
 }
 
 /** Minimal inline sparkline for table rows / cards. */

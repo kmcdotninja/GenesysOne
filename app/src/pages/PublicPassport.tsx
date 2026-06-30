@@ -113,7 +113,7 @@ export function PublicPassport() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-10">
+      <div className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-6 lg:px-12">
         {/* Header */}
         <header className="mb-7 flex flex-col gap-4 border-b border-hair pb-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
@@ -121,13 +121,9 @@ export function PublicPassport() {
               <Mark className="h-6 w-6" />
             </span>
             <div className="leading-tight">
-              <p className="text-[15px] font-bold tracking-[-0.01em] text-forest">GENESYS ONE</p>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-forest-400">Mineral Passport</p>
+              <h1 className="text-xl font-bold tracking-[-0.01em] text-forest">GenesysOne Mineral Passport</h1>
+              <p className="mt-0.5 text-sm text-forest-400">Powered by Blockchain · Verified · Transparent · Traceable</p>
             </div>
-          </div>
-          <div className="hidden text-center lg:block">
-            <h1 className="text-2xl font-bold tracking-[-0.02em] text-forest">DIGITAL MINERAL PASSPORT</h1>
-            <p className="mt-0.5 text-sm text-forest-400">Powered by Blockchain · Verified · Transparent · Traceable</p>
           </div>
           <div
             className={cn(
@@ -147,7 +143,7 @@ export function PublicPassport() {
           </div>
         </header>
 
-        <div className="grid gap-5 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3">
           {/* ---------- Left column ---------- */}
           <div className="space-y-5">
             {/* Dark hero card */}
@@ -221,6 +217,41 @@ export function PublicPassport() {
                 <SummaryItem icon={Clock} label="Last Updated" value={passport.updatedAt} />
               </dl>
             </div>
+
+            {/* Chain of custody — under the mineral summary, wraps to fill the column */}
+            {passport.custody && passport.custody.length > 0 && (
+              <div className={PANEL}>
+                <SectionTitle icon={ShieldCheck}>Chain of Custody · anchored on {passport.chain}</SectionTitle>
+                <ol className="relative ml-2 space-y-5 border-l border-hair pl-6">
+                  {passport.custody.map((c) => (
+                    <li key={c.id} className="relative">
+                      <span className="absolute -left-[31px] top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-teal-soft">
+                        <span className="h-2 w-2 rounded-full bg-teal" />
+                      </span>
+                      <p className="text-sm font-semibold text-forest">{c.label}</p>
+                      <p className="text-xs text-forest-400">
+                        {c.actor} · {c.at}
+                      </p>
+                      {c.txHash && (
+                        <p className="mt-0.5 flex items-center gap-1 font-mono text-[11px] text-forest-300">
+                          <Hash size={11} /> {c.txHash.slice(0, 24)}…
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+                {passport.anchoredAt && (
+                  <a
+                    href={stellarHash ? `https://stellar.expert/explorer/public/tx/${stellarHash}` : '#'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-teal hover:underline"
+                  >
+                    <ExternalLink size={14} /> View blockchain record · anchored {passport.anchoredAt}
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ---------- Middle column ---------- */}
@@ -358,41 +389,6 @@ export function PublicPassport() {
             )}
           </div>
         </div>
-
-        {/* Chain of custody */}
-        {passport.custody && passport.custody.length > 0 && (
-          <div className={cn(PANEL, 'mt-5')}>
-            <SectionTitle icon={ShieldCheck}>Chain of Custody · anchored on {passport.chain}</SectionTitle>
-            <ol className="relative ml-2 space-y-5 border-l border-hair pl-6">
-              {passport.custody.map((c) => (
-                <li key={c.id} className="relative">
-                  <span className="absolute -left-[31px] top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-teal-soft">
-                    <span className="h-2 w-2 rounded-full bg-teal" />
-                  </span>
-                  <p className="text-sm font-semibold text-forest">{c.label}</p>
-                  <p className="text-xs text-forest-400">
-                    {c.actor} · {c.at}
-                  </p>
-                  {c.txHash && (
-                    <p className="mt-0.5 flex items-center gap-1 font-mono text-[11px] text-forest-300">
-                      <Hash size={11} /> {c.txHash.slice(0, 24)}…
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ol>
-            {passport.anchoredAt && (
-              <a
-                href={stellarHash ? `https://stellar.expert/explorer/public/tx/${stellarHash}` : '#'}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-teal hover:underline"
-              >
-                <ExternalLink size={14} /> View blockchain record · anchored {passport.anchoredAt}
-              </a>
-            )}
-          </div>
-        )}
 
         {/* Footer trust band */}
         <div className="mt-5 grid gap-6 rounded-3xl bg-forest px-6 py-7 text-white sm:grid-cols-2 lg:grid-cols-5">

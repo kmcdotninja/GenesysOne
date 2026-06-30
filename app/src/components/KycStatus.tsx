@@ -1,43 +1,26 @@
-import { AlertCircle, CheckCircle2, Clock, FileCheck2, Upload } from 'lucide-react'
-import { Avatar, Badge, Button, KeyValue, StatusPill, faceUrl } from '@/components/ui'
-import { DIRECTORS } from '@/data/mock'
+import { type ReactNode } from 'react'
+import { AlertCircle, CheckCircle2, Clock, FileText, MessageSquareWarning, ShieldCheck } from 'lucide-react'
+import { Avatar, Badge, Button, KeyValue, StatusPill } from '@/components/ui'
 import { ROLE_META } from '@/data/nav'
-import type { Role } from '@/data/types'
+import { useStore } from '@/store/AppStore'
+import type { KycSubmission, Role, UserAccount } from '@/data/types'
 
-interface RequestedItem {
-  label: string
-  hint: string
-  action: string
-}
+const mask = (v: string) => (v ? `•••• ${v.slice(-4)}` : '••••')
 
-const REQUESTED: Record<Role, RequestedItem[]> = {
-  seller: [],
-  buyer: [],
-  compliance: [],
-  lab: [
-    {
-      label: 'Updated ISO/IEC 17025 accreditation',
-      hint: 'Your certificate on file expires in 30 days.',
-      action: 'Upload',
-    },
-    {
-      label: 'BVN verification — Ngozi Eze',
-      hint: 'Required to complete personnel verification.',
-      action: 'Provide',
-    },
-  ],
-}
+const Heading = ({ children }: { children: ReactNode }) => (
+  <h4 className="mb-3 text-sm font-bold uppercase tracking-[0.06em] text-forest-400">{children}</h4>
+)
 
-function StatusBanner({ status }: { status: string }) {
+const DOC_TONE = { received: 'neutral', verified: 'success', flagged: 'danger' } as const
+
+function StatusBanner({ status, submittedAt }: { status: string; submittedAt?: string }) {
   if (status === 'verified') {
     return (
       <div className="flex items-start gap-3 rounded-2xl bg-teal-soft/70 p-4">
         <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-teal" />
         <div>
           <p className="text-sm font-semibold text-forest">Verified</p>
-          <p className="text-[13px] text-forest-500">
-            Your business is fully verified — all trading features are unlocked.
-          </p>
+          <p className="text-[13px] text-forest-500">Your business is fully verified — all features are unlocked.</p>
         </div>
       </div>
     )
@@ -48,9 +31,18 @@ function StatusBanner({ status }: { status: string }) {
         <AlertCircle size={20} className="mt-0.5 shrink-0 text-rose-ink" />
         <div>
           <p className="text-sm font-semibold text-forest">Changes requested</p>
-          <p className="text-[13px] text-forest-500">
-            A reviewer needs more information before your KYC can be approved.
-          </p>
+          <p className="text-[13px] text-forest-500">A reviewer needs more information before your KYC can be approved.</p>
+        </div>
+      </div>
+    )
+  }
+  if (status === 'info_requested') {
+    return (
+      <div className="flex items-start gap-3 rounded-2xl bg-orange-soft/70 p-4">
+        <MessageSquareWarning size={20} className="mt-0.5 shrink-0 text-orange-600" />
+        <div>
+          <p className="text-sm font-semibold text-forest">Information requested</p>
+          <p className="text-[13px] text-forest-500">Compliance asked for more details before they can continue.</p>
         </div>
       </div>
     )
@@ -61,94 +53,153 @@ function StatusBanner({ status }: { status: string }) {
       <div>
         <p className="text-sm font-semibold text-forest">Under review</p>
         <p className="text-[13px] text-forest-500">
-          Submitted on 12 Apr 2024 · reviews typically complete within 1–2 business days.
+          Submitted {submittedAt ?? 'recently'} · reviews typically complete within 1–2 business days.
         </p>
       </div>
     </div>
   )
 }
 
-export function KycStatus({ role, onEdit, status }: { role: Role; onEdit: () => void; status?: string }) {
-  const meta = ROLE_META[role]
-  const isLab = role === 'lab'
-  const requested = (status ?? meta.kyc) === 'verified' ? [] : REQUESTED[role]
+function NotStarted({ company, onEdit }: { company: string; onEdit: () => void }) {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-start gap-3 rounded-2xl bg-panel/60 p-4">
+        <Clock size={20} className="mt-0.5 shrink-0 text-forest-400" />
+        <div>
+          <p className="text-sm font-semibold text-forest">Not started</p>
+          <p className="text-[13px] text-forest-500">You haven't submitted your verification yet.</p>
+        </div>
+      </div>
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-hair bg-panel/40 px-6 py-10 text-center">
+        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-forest-400 shadow-card">
+          <ShieldCheck size={22} />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-forest">No details submitted yet</p>
+          <p className="mt-1 text-[13px] text-forest-400">
+            Complete the verification form to submit {company} to compliance for review.
+          </p>
+        </div>
+        <Button leftIcon={<ShieldCheck size={16} />} onClick={onEdit}>Start verification</Button>
+      </div>
+    </div>
+  )
+}
 
+function SubmissionView({ sub, status, onEdit }: { sub: KycSubmission; status: string; onEdit: () => void }) {
   return (
     <div className="space-y-6">
-      <StatusBanner status={status ?? meta.kyc} />
+      <StatusBanner status={status} submittedAt={sub.submittedAt} />
 
-      {/* Reviewer requests */}
-      {requested.length > 0 && (
+      {sub.requestedInfo && (status === 'info_requested' || status === 'rejected') && (
+        <div className="flex items-start gap-2 rounded-2xl border border-orange/30 bg-orange-soft/40 p-3.5 text-sm text-orange-600">
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
+          <span>{sub.requestedInfo}</span>
+        </div>
+      )}
+
+      <div>
+        <Heading>Submitted details</Heading>
+        <dl className="grid grid-cols-2 gap-4 rounded-2xl border border-hair p-4">
+          <KeyValue label="Company name" value={sub.company} />
+          <KeyValue label="Incorporation" value={<span className="capitalize">{sub.incorporationType.replace(/_/g, ' ')}</span>} />
+          <KeyValue label="Reg. date" value={sub.incorporationDate} />
+          <KeyValue label="Location" value={`${sub.lga}, ${sub.state}`} />
+          <KeyValue label="TIN" value={<span className="font-mono">{sub.tin ?? '—'}</span>} />
+          <KeyValue label="License" value={sub.license.number} />
+        </dl>
+      </div>
+
+      <div>
+        <Heading>Documents</Heading>
+        <div className="space-y-2">
+          {sub.documents.map((d) => (
+            <div key={d.name} className="flex items-center justify-between rounded-xl border border-hair px-3.5 py-2.5 text-sm">
+              <span className="flex items-center gap-2 text-forest-500">
+                <FileText size={15} className="text-forest-300" /> {d.name}
+              </span>
+              <Badge tone={DOC_TONE[d.status]}>{d.status}</Badge>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {sub.directors.length > 0 && (
         <div>
-          <div className="mb-3 flex items-center gap-2">
-            <h4 className="text-sm font-bold uppercase tracking-[0.06em] text-forest-400">
-              Requested by reviewer
-            </h4>
-            <Badge tone="warning">{requested.length}</Badge>
-          </div>
+          <Heading>Directors</Heading>
           <div className="space-y-2.5">
-            {requested.map((r) => (
-              <div
-                key={r.label}
-                className="flex items-center gap-3 rounded-2xl border border-orange/30 bg-orange-soft/40 p-3.5"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-orange-600 shadow-card">
-                  <Upload size={16} />
-                </span>
+            {sub.directors.map((d) => (
+              <div key={d.name} className="flex items-center gap-3 rounded-2xl border border-hair p-3">
+                <Avatar name={d.name} size="sm" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-forest">{r.label}</p>
-                  <p className="text-xs text-forest-500">{r.hint}</p>
+                  <p className="truncate text-sm font-semibold text-forest">{d.name}</p>
+                  <p className="text-xs text-forest-400">
+                    {d.role}
+                    {d.nin ? ` · NIN ${mask(d.nin)}` : ''}
+                  </p>
                 </div>
-                <Button size="sm" variant="secondary" onClick={onEdit}>
-                  {r.action}
-                </Button>
+                <StatusPill status={d.verification === 'verified' ? 'verified' : d.verification === 'failed' ? 'failed' : 'pending'} />
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Submitted details */}
-      <div>
-        <h4 className="mb-3 text-sm font-bold uppercase tracking-[0.06em] text-forest-400">
-          Submitted details
-        </h4>
-        <dl className="grid grid-cols-2 gap-4 rounded-2xl border border-hair p-4">
-          <KeyValue label={isLab ? 'Lab name' : 'Company name'} value={meta.company} />
-          <KeyValue label="Incorporation" value="Registered company" />
-          <KeyValue label="Reg. date" value="12 Apr 2019" />
-          <KeyValue label="Location" value="Plateau · Barkin Ladi" />
-          <KeyValue label="TIN" value="0123•••• 0001" />
-          <KeyValue label="Country" value="Nigeria" />
-        </dl>
-        {isLab && (
-          <div className="mt-3 flex items-center gap-2.5 rounded-2xl bg-teal-soft/60 px-3.5 py-3 text-sm text-teal">
-            <FileCheck2 size={17} />
-            <span className="font-medium">3 accreditation documents on file</span>
-          </div>
-        )}
-      </div>
-
-      {/* People */}
-      <div>
-        <h4 className="mb-3 text-sm font-bold uppercase tracking-[0.06em] text-forest-400">
-          {isLab ? 'Authorized personnel' : 'Directors'}
-        </h4>
-        <div className="space-y-2.5">
-          {DIRECTORS.map((d) => (
-            <div key={d.id} className="flex items-center gap-3 rounded-2xl border border-hair p-3">
-              <Avatar name={d.name} src={faceUrl(d.id)} size="sm" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-forest">{d.name}</p>
-                <p className="text-xs text-forest-400">
-                  NIN {d.nin.slice(0, 3)}•••• · {d.role}
-                </p>
-              </div>
-              <StatusPill status={d.verification === 'verified' ? 'verified' : 'pending'} />
-            </div>
-          ))}
-        </div>
-      </div>
+      {status === 'rejected' && (
+        <Button variant="secondary" leftIcon={<ShieldCheck size={16} />} onClick={onEdit}>
+          Resubmit details
+        </Button>
+      )}
     </div>
   )
+}
+
+export function KycStatus({
+  role,
+  onEdit,
+  status,
+  account,
+}: {
+  role: Role
+  onEdit: () => void
+  status?: string
+  account?: UserAccount
+}) {
+  const store = useStore()
+  const effectiveStatus = status ?? (account ? account.kyc : store.kyc[role])
+
+  // Nothing submitted yet → empty "not started" state (no fabricated data).
+  if (effectiveStatus === 'not_started') {
+    return <NotStarted company={account?.company ?? ROLE_META[role].company} onEdit={onEdit} />
+  }
+
+  // A created account's submission lives in the shared compliance queue, not this
+  // world — show the account-level summary it provided.
+  if (account) {
+    return (
+      <div className="space-y-6">
+        <StatusBanner status={effectiveStatus} submittedAt={account.createdAt} />
+        <div>
+          <Heading>Submitted details</Heading>
+          <dl className="grid grid-cols-2 gap-4 rounded-2xl border border-hair p-4">
+            <KeyValue label="Company name" value={account.company} />
+            <KeyValue label="Account type" value={ROLE_META[account.role].label} />
+            <KeyValue label="Contact" value={account.contactName} />
+            <KeyValue label="Email" value={account.email} />
+            <KeyValue label="Country" value={account.country ?? '—'} />
+          </dl>
+        </div>
+        {effectiveStatus !== 'verified' && (
+          <p className="rounded-2xl bg-panel/50 px-4 py-3 text-[13px] text-forest-400">
+            Your submission is with the compliance team — you'll be notified once it's reviewed.
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  // Demo account — show the actual submission from the compliance queue.
+  const sub = store.kycSubmissions.find((k) => k.company === ROLE_META[role].company && k.role === role)
+  if (!sub) return <NotStarted company={ROLE_META[role].company} onEdit={onEdit} />
+  return <SubmissionView sub={sub} status={effectiveStatus} onEdit={onEdit} />
 }

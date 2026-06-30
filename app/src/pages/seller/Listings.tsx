@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { BadgeCheck, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/shell/PageHeader'
 import {
-  Button,
   ButtonLink,
   Card,
   DataTable,
@@ -14,6 +13,7 @@ import {
   Tally,
   type Column,
 } from '@/components/ui'
+import { GatedButton, useAccount } from '@/components/shell/AccountContext'
 import { CreateListingModal } from '@/components/modals'
 import { useStore } from '@/store/AppStore'
 import type { Listing, ListingStatus } from '@/data/types'
@@ -38,7 +38,11 @@ const TALLY_META: { key: ListingStatus | 'total'; label: string; accent: string 
 ]
 
 export function SellerListings() {
-  const { listings } = useStore()
+  const store = useStore()
+  const { verified } = useAccount()
+  const listings = useMemo(() => (verified ? store.listings : []), [store.listings, verified])
+  const inventory = verified ? store.inventory : []
+  const hasApprovedMinerals = inventory.some((i) => i.vetting !== 'pending')
   const [filter, setFilter] = useState<ListingStatus | 'all'>('all')
   const [createOpen, setCreateOpen] = useState(false)
   const [active, setActive] = useState<Listing | null>(null)
@@ -109,9 +113,9 @@ export function SellerListings() {
             <ButtonLink to="/seller/qca" variant="secondary" leftIcon={<BadgeCheck size={16} />}>
               Quality control
             </ButtonLink>
-            <Button leftIcon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
+            <GatedButton leftIcon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
               Create listing
-            </Button>
+            </GatedButton>
           </>
         }
       />
@@ -146,7 +150,11 @@ export function SellerListings() {
           rowKey={(r) => r.id}
           onRowClick={setActive}
           empty={
-            <EmptyListings onCreate={() => setCreateOpen(true)} filter={filter} />
+            <EmptyListings
+              onCreate={() => setCreateOpen(true)}
+              filter={filter}
+              hasApprovedMinerals={hasApprovedMinerals}
+            />
           }
         />
       </Card>
@@ -188,18 +196,34 @@ export function SellerListings() {
 function EmptyListings({
   onCreate,
   filter,
+  hasApprovedMinerals,
 }: {
   onCreate: () => void
   filter: string
+  hasApprovedMinerals: boolean
 }) {
+  if (!hasApprovedMinerals) {
+    return (
+      <EmptyState
+        variant="inbox"
+        title="No approved minerals yet"
+        description="You don't have any approved minerals in your inventory yet. Add a mineral and complete the vetting process to create your first listing."
+        action={
+          <ButtonLink to="/seller/inventory" leftIcon={<Plus size={16} />}>
+            Add mineral
+          </ButtonLink>
+        }
+      />
+    )
+  }
   return (
     <EmptyState
       title={filter === 'all' ? 'No listings yet' : `No ${filter} listings`}
-      description="Publish a mineral from your inventory to start receiving RFQs."
+      description="Publish a vetted mineral from your inventory to start receiving RFQs."
       action={
-        <Button leftIcon={<Plus size={16} />} onClick={onCreate}>
+        <GatedButton leftIcon={<Plus size={16} />} onClick={onCreate}>
           Create listing
-        </Button>
+        </GatedButton>
       }
     />
   )

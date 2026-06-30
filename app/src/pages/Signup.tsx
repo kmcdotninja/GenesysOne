@@ -3,15 +3,34 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { AuthLayout } from '@/components/auth/AuthLayout'
 import { Logo } from '@/components/Logo'
-import { Button, Field, Input, Segmented, useToast } from '@/components/ui'
-import { ROLE_META, ROLES } from '@/data/nav'
-import type { Role } from '@/data/types'
+import { Button, Field, Input, Segmented, Select, useToast } from '@/components/ui'
+import { ROLE_META } from '@/data/nav'
+import { useStore } from '@/store/AppStore'
+
+type SignupRole = 'seller' | 'buyer'
+const SIGNUP_ROLES: { value: SignupRole; label: string }[] = [
+  { value: 'seller', label: 'Seller' },
+  { value: 'buyer', label: 'Buyer' },
+]
+const COUNTRIES = ['Nigeria', 'Ghana', 'South Africa', 'Kenya', 'United Kingdom']
 
 export function Signup() {
   const navigate = useNavigate()
   const toast = useToast()
-  const [role, setRole] = useState<Role>('seller')
+  const { createAccount } = useStore()
+  const [role, setRole] = useState<SignupRole>('seller')
   const [showPw, setShowPw] = useState(false)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [company, setCompany] = useState('')
+  const [country, setCountry] = useState(COUNTRIES[0])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    createAccount({ role, company: company.trim(), contactName: name.trim(), email: email.trim(), country })
+    toast.success('Account created', `${company.trim()} is ready — complete verification to unlock everything.`)
+    navigate(ROLE_META[role].base)
+  }
 
   return (
     <AuthLayout>
@@ -24,19 +43,31 @@ export function Signup() {
         Join GenesysOne to trace, certify and trade minerals
       </p>
 
-      <form
-        className="mt-7 space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault()
-          toast.success('Account created', `Welcome to GenesysOne, ${ROLE_META[role].label}.`)
-          navigate(ROLE_META[role].base)
-        }}
-      >
-        <Field label="Full name">
-          <Input required placeholder="Amara Okwuosa" autoFocus />
+      <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
+        <Field label="Account type" hint="You can add more accounts later.">
+          <Segmented<SignupRole>
+            block
+            options={SIGNUP_ROLES}
+            value={role}
+            onChange={setRole}
+          />
         </Field>
+
+        <Field label="Company name">
+          <Input required placeholder="Acme Minerals Ltd" value={company} onChange={(e) => setCompany(e.target.value)} autoFocus />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Full name">
+            <Input required placeholder="Amara Okwuosa" value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+          <Field label="Country">
+            <Select value={country} onChange={(e) => setCountry(e.target.value)}>
+              {COUNTRIES.map((c) => <option key={c}>{c}</option>)}
+            </Select>
+          </Field>
+        </div>
         <Field label="Work email">
-          <Input type="email" required placeholder="me@company.com" />
+          <Input type="email" required placeholder="me@company.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
         <Field label="Password" hint="At least 8 characters">
           <div className="relative">
@@ -54,15 +85,6 @@ export function Signup() {
               {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
-        </Field>
-
-        <Field label="Account type">
-          <Segmented<Role>
-            block
-            options={ROLES.map((r) => ({ value: r, label: ROLE_META[r].label }))}
-            value={role}
-            onChange={setRole}
-          />
         </Field>
 
         <Button type="submit" block className="mt-2">

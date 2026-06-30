@@ -80,7 +80,7 @@ export function LabWallet() {
           <p className="text-sm text-white/70">Available balance</p>
           <p className="tnum mt-2 text-4xl font-semibold tracking-[-0.02em]">{money(labWalletNGN)}</p>
           <p className="mt-2 text-xs text-lime">Earned from completed tests</p>
-          <AreaChart data={VOLUME_SERIES} height={56} line="#a6e64d" fill="#a6e64d" showEndDot={false} className="mt-4 -mb-2 opacity-90" />
+          <AreaChart data={VOLUME_SERIES} height={56} line="#a6e64d" fill="#a6e64d" showEndDot={false} interactive={false} className="mt-4 -mb-2 opacity-90" />
           <Button variant="lime" className="mt-4" block leftIcon={<Minus size={16} />} onClick={() => setWithdrawOpen(true)}>
             Withdraw funds
           </Button>

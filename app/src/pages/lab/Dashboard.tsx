@@ -101,7 +101,15 @@ export function LabDashboard() {
           subtitle="Samples assayed per week"
           action={<Badge tone="success" dot>+22%</Badge>}
         />
-        <AreaChart data={VOLUME_SERIES} height={170} line="#2f8868" fill="#a6e64d" className="mt-4" />
+        <AreaChart
+          data={VOLUME_SERIES}
+          height={170}
+          line="#2f8868"
+          fill="#a6e64d"
+          className="mt-4"
+          labels={VOLUME_SERIES.map((_, i) => `Wk ${i + 1}`)}
+          valueFormat={(v) => `${v} samples`}
+        />
       </Card>
 
       <Card className="mt-5" pad={false}>

@@ -38,13 +38,13 @@ export const ROLE_META: Record<Role, RoleMeta> = {
   seller: {
     label: 'Seller',
     company: 'Jos Highland Minerals Ltd',
-    kyc: 'verified',
+    kyc: 'under_review',
     base: '/seller',
   },
   buyer: {
     label: 'Buyer',
     company: 'Atlantic Metals Trading',
-    kyc: 'verified',
+    kyc: 'not_started',
     base: '/buyer',
   },
   lab: {

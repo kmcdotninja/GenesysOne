@@ -14,9 +14,11 @@ import type {
   CustodyEvent,
   EsgScore,
   InventoryItem,
+  KycDirectorRef,
   KycStatus,
   KycSubmission,
   Listing,
+  MineralVetting,
   MiningSite,
   NotificationItem,
   Passport,
@@ -32,10 +34,11 @@ import type {
   Trade,
   Transaction,
   TestResult,
+  UserAccount,
 } from '@/data/types'
 import { money } from '@/lib/format'
 
-const KEY = 'genesys.store.v3'
+const KEY = 'genesys.store.v6'
 
 interface StoreState {
   inventory: InventoryItem[]
@@ -83,14 +86,56 @@ function initialState(): StoreState {
   }
 }
 
-function load(): StoreState {
+/** A blank world for a newly created account — every metric starts empty. */
+function emptyWorld(): StoreState {
+  return {
+    inventory: [],
+    listings: [],
+    samplingRequests: [],
+    testingRequests: [],
+    rfqs: [],
+    sampleRequests: [],
+    trades: [],
+    transactions: [],
+    labTransactions: [],
+    testResults: [],
+    notifications: [],
+    passports: [],
+    miningSites: [],
+    agents: [],
+    kyc: { seller: 'not_started', buyer: 'not_started', lab: 'not_started', compliance: 'not_started' },
+    kycSubmissions: [],
+    walletNGN: 0,
+    walletUSD: 0,
+    labWalletNGN: 0,
+  }
+}
+
+/**
+ * Top-level persisted shape. The four demo interfaces share one `demo` world;
+ * each user-created account gets its own isolated (initially empty) world, so a
+ * brand-new account starts with ₦0, no trades and no history.
+ */
+interface AppState {
+  worlds: Record<string, StoreState>
+  accounts: UserAccount[]
+  activeAccountId: string | null
+  /** Shared queue of created-seller minerals awaiting Compliance vetting. */
+  vettingQueue: MineralVetting[]
+}
+
+function initialApp(): AppState {
+  return { worlds: { demo: initialState() }, accounts: [], activeAccountId: null, vettingQueue: [] }
+}
+
+function load(): AppState {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { ...initialState(), ...JSON.parse(raw) }
+    if (raw) return { ...initialApp(), ...JSON.parse(raw) }
   } catch {
     /* ignore */
   }
-  return initialState()
+  return initialApp()
 }
 
 export function newId(prefix = 'gx'): string {
@@ -153,8 +198,24 @@ function defaultEsg(): EsgScore {
 }
 
 interface StoreApi extends StoreState {
+  // Multi-account
+  accounts: UserAccount[]
+  activeAccountId: string | null
+  createAccount: (input: {
+    role: Role
+    company: string
+    contactName: string
+    email: string
+    country?: string
+  }) => UserAccount
+  switchAccount: (id: string | null) => void
+  verifyAccount: (id: string) => void
+  vettingQueue: MineralVetting[]
   addInventory: (item: InventoryItem) => void
   updateInventory: (id: string, changes: Partial<InventoryItem>) => void
+  approveInventory: (id: string) => void
+  submitMineralVetting: (inventoryId: string) => void
+  approveMineralVetting: (id: string) => void
   addSampling: (item: SamplingRequest) => void
   addListing: (item: Listing) => void
   addTestingRequest: (item: TestingRequest) => void
@@ -206,6 +267,30 @@ interface StoreApi extends StoreState {
   approvePassport: (passportId: string) => void
   rejectPassport: (passportId: string, reason: string) => void
   // KYC / KYB review (Compliance)
+  submitKyc: (
+    role: Role,
+    details?: {
+      company?: string
+      state?: string
+      lga?: string
+      incorporationType?: string
+      incorporationDate?: string
+      tin?: string
+      directors?: KycDirectorRef[]
+    },
+  ) => void
+  submitAccountKyc: (
+    accountId: string,
+    details: {
+      company: string
+      state: string
+      lga: string
+      incorporationType: string
+      incorporationDate: string
+      tin?: string
+      directors: KycDirectorRef[]
+    },
+  ) => void
   approveKyc: (id: string) => void
   rejectKyc: (id: string, reason: string) => void
   requestKycInfo: (id: string, note: string) => void
@@ -221,7 +306,7 @@ export function useStore(): StoreApi {
 }
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<StoreState>(load)
+  const [state, setState] = useState<AppState>(load)
 
   useEffect(() => {
     try {
@@ -232,10 +317,48 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, [state])
 
   const api = useMemo<StoreApi>(() => {
-    const patch = (fn: (s: StoreState) => StoreState) => setState(fn)
+    const worldKey = state.activeAccountId ?? 'demo'
+    const world = state.worlds[worldKey] ?? state.worlds.demo
+    // All existing mutations operate on the active account's world.
+    const patch = (fn: (s: StoreState) => StoreState) =>
+      setState((prev) => {
+        const key = prev.activeAccountId ?? 'demo'
+        return { ...prev, worlds: { ...prev.worlds, [key]: fn(prev.worlds[key] ?? prev.worlds.demo) } }
+      })
 
     return {
-      ...state,
+      ...world,
+      accounts: state.accounts,
+      activeAccountId: state.activeAccountId,
+      vettingQueue: state.vettingQueue,
+
+      createAccount: (input) => {
+        const acct: UserAccount = {
+          id: newId('acc'),
+          role: input.role,
+          company: input.company,
+          contactName: input.contactName,
+          email: input.email,
+          country: input.country,
+          kyc: 'not_started',
+          createdAt: 'Just now',
+        }
+        setState((prev) => ({
+          ...prev,
+          accounts: [...prev.accounts, acct],
+          worlds: { ...prev.worlds, [acct.id]: emptyWorld() },
+          activeAccountId: acct.id,
+        }))
+        return acct
+      },
+
+      switchAccount: (id) => setState((prev) => ({ ...prev, activeAccountId: id })),
+
+      verifyAccount: (id) =>
+        setState((prev) => ({
+          ...prev,
+          accounts: prev.accounts.map((a) => (a.id === id ? { ...a, kyc: 'verified' } : a)),
+        })),
 
       addInventory: (item) =>
         patch((s) => ({ ...s, inventory: [item, ...s.inventory] })),
@@ -247,6 +370,75 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             i.id === id ? { ...i, ...changes, updatedAt: 'Just now' } : i,
           ),
         })),
+
+      approveInventory: (id) =>
+        patch((s) => ({
+          ...s,
+          inventory: s.inventory.map((i) => (i.id === id ? { ...i, vetting: 'approved' } : i)),
+        })),
+
+      // A created seller sends a mineral to the shared Compliance vetting queue.
+      submitMineralVetting: (inventoryId) =>
+        setState((prev) => {
+          const accountId = prev.activeAccountId
+          if (!accountId) return prev
+          const world = prev.worlds[accountId]
+          const acct = prev.accounts.find((a) => a.id === accountId)
+          const inv = world?.inventory.find((i) => i.id === inventoryId)
+          if (!world || !acct || !inv) return prev
+          if (prev.vettingQueue.some((v) => v.inventoryId === inventoryId && v.status === 'pending')) return prev
+          const req: MineralVetting = {
+            id: newId('vet'),
+            accountId,
+            inventoryId,
+            company: acct.company,
+            mineral: inv.mineral,
+            grade: inv.grade,
+            unit: inv.unit,
+            quantity: inv.available,
+            state: inv.state,
+            status: 'pending',
+            submittedAt: 'Just now',
+          }
+          return {
+            ...prev,
+            vettingQueue: [req, ...prev.vettingQueue],
+            worlds: {
+              ...prev.worlds,
+              demo: {
+                ...prev.worlds.demo,
+                notifications: [
+                  mkNotif('compliance', 'passport', 'Mineral vetting requested', `${acct.company} submitted ${inv.mineral} for vetting.`, '/compliance/passports'),
+                  ...prev.worlds.demo.notifications,
+                ],
+              },
+            },
+          }
+        }),
+
+      // Compliance approves vetting → issues a Digital Passport and unlocks listing.
+      approveMineralVetting: (id) =>
+        setState((prev) => {
+          const req = prev.vettingQueue.find((v) => v.id === id)
+          if (!req || req.status === 'approved') return prev
+          const number = nextPassportNumber(req.mineral)
+          const world = prev.worlds[req.accountId]
+          return {
+            ...prev,
+            vettingQueue: prev.vettingQueue.map((v) => (v.id === id ? { ...v, status: 'approved', passportNumber: number } : v)),
+            worlds: world
+              ? {
+                  ...prev.worlds,
+                  [req.accountId]: {
+                    ...world,
+                    inventory: world.inventory.map((i) =>
+                      i.id === req.inventoryId ? { ...i, vetting: 'approved', passportNumber: number } : i,
+                    ),
+                  },
+                }
+              : prev.worlds,
+          }
+        }),
 
       addSampling: (item) =>
         patch((s) => ({
@@ -356,13 +548,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         }),
 
       agreeRfq: (id, acceptedBy) => {
-        const rfq = state.rfqs.find((r) => r.id === id)
+        const rfq = world.rfqs.find((r) => r.id === id)
         if (!rfq) return false
         // The deal price is the most recent offer on the table (either side).
         const offer = [...(rfq.messages ?? [])].reverse().find((m) => m.price != null && !m.system)?.price ?? rfq.quotedPrice
         if (!offer || offer <= 0) return false
         // The buyer funds the agreed amount into escrow.
-        if (offer > state.walletNGN) return false
+        if (offer > world.walletNGN) return false
         patch((s) => {
           const orderNumber = nextOrderNumber()
           const grade =
@@ -463,7 +655,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         }),
 
       placeOrder: (input) => {
-        const wallet = input.currency === 'NGN' ? state.walletNGN : state.walletUSD
+        const wallet = input.currency === 'NGN' ? world.walletNGN : world.walletUSD
         if (input.value <= 0 || input.value > wallet) return false
         patch((s) => {
           const orderNumber = nextOrderNumber()
@@ -716,54 +908,191 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           }
         }),
 
-      approveKyc: (id) =>
+      submitKyc: (role, details) =>
         patch((s) => {
-          const sub = s.kycSubmissions.find((k) => k.id === id)
-          if (!sub) return s
-          const isPrimary = sub.company === ROLE_COMPANY[sub.role]
+          const canonical = ROLE_COMPANY[role]
+          const company = details?.company || canonical
+          const existing = s.kycSubmissions.find((k) => k.company === canonical && k.role === role)
+          const focusId = existing?.id ?? newId('kyc')
+          // The reviewer should see what was actually entered in the KYC form.
+          const fields = {
+            company,
+            state: details?.state ?? 'Plateau',
+            lga: details?.lga ?? 'Barkin Ladi',
+            incorporationType: details?.incorporationType ?? 'registered_company',
+            incorporationDate: details?.incorporationDate ?? '—',
+            tin: details?.tin,
+            directors: details?.directors ?? [],
+          }
+          const submissions = existing
+            ? s.kycSubmissions.map((k) =>
+                k.id === existing.id
+                  ? { ...k, ...fields, status: 'submitted' as const, submittedAt: 'Just now', reviewedAt: undefined, requestedInfo: undefined }
+                  : k,
+              )
+            : [
+                {
+                  id: focusId,
+                  ...fields,
+                  role,
+                  type: (role === 'buyer' ? 'buyer' : role === 'lab' ? 'lab' : 'miner') as KycSubmission['type'],
+                  contactName: 'Authorized Representative',
+                  contactEmail: `kyc@${canonical.toLowerCase().replace(/[^a-z0-9]+/g, '')}.ng`,
+                  license: {
+                    kind: role === 'lab' ? 'ISO/IEC 17025 Accreditation' : role === 'buyer' ? 'Trading License' : 'Mining License',
+                    number: 'Submitted',
+                  },
+                  documents: [
+                    { name: 'Certificate of incorporation', kind: 'Incorporation', status: 'received' as const },
+                    { name: role === 'lab' ? 'Accreditation documents' : 'Operating license', kind: 'License', status: 'received' as const },
+                    { name: 'Proof of business address', kind: 'Address', status: 'received' as const },
+                  ],
+                  status: 'submitted' as const,
+                  submittedAt: 'Just now',
+                },
+                ...s.kycSubmissions,
+              ]
           return {
             ...s,
-            kycSubmissions: s.kycSubmissions.map((k) =>
-              k.id === id ? { ...k, status: 'verified', reviewedAt: 'Just now', requestedInfo: undefined } : k,
-            ),
-            kyc: isPrimary ? { ...s.kyc, [sub.role]: 'verified' } : s.kyc,
-            notifications: isPrimary
-              ? [mkNotif(sub.role, 'kyc', 'KYC verified', `${sub.company} is fully verified — all features are unlocked.`, `/${sub.role}`), ...s.notifications]
-              : s.notifications,
+            kycSubmissions: submissions,
+            kyc: { ...s.kyc, [role]: 'submitted' },
+            notifications: [
+              mkNotif('compliance', 'kyc', 'New KYC submission', `${company} submitted KYC/KYB for review.`, `/compliance/kyc?focus=${focusId}`),
+              mkNotif(role, 'kyc', 'KYC submitted', 'Your verification is now under review by compliance.', `/${role}`),
+              ...s.notifications,
+            ],
+          }
+        }),
+
+      // A created account submits KYC → the real details land in the shared
+      // Compliance review queue so reviewers see exactly what was sent.
+      submitAccountKyc: (accountId, details) =>
+        setState((prev) => {
+          const acct = prev.accounts.find((a) => a.id === accountId)
+          if (!acct) return prev
+          const focusId = newId('kyc')
+          const submission: KycSubmission = {
+            id: focusId,
+            accountId,
+            company: details.company,
+            role: acct.role,
+            type: (acct.role === 'buyer' ? 'buyer' : 'miner') as KycSubmission['type'],
+            contactName: acct.contactName,
+            contactEmail: acct.email,
+            state: details.state,
+            lga: details.lga,
+            incorporationType: details.incorporationType,
+            incorporationDate: details.incorporationDate,
+            tin: details.tin,
+            license: { kind: acct.role === 'buyer' ? 'Trading License' : 'Mining License', number: 'Submitted' },
+            documents: [
+              { name: 'Certificate of incorporation', kind: 'Incorporation', status: 'received' },
+              { name: 'Operating license', kind: 'License', status: 'received' },
+              { name: 'Proof of business address', kind: 'Address', status: 'received' },
+            ],
+            directors: details.directors,
+            status: 'submitted',
+            submittedAt: 'Just now',
+          }
+          const demo = prev.worlds.demo
+          return {
+            ...prev,
+            accounts: prev.accounts.map((a) => (a.id === accountId ? { ...a, company: details.company, kyc: 'submitted' } : a)),
+            worlds: {
+              ...prev.worlds,
+              demo: {
+                ...demo,
+                kycSubmissions: [submission, ...demo.kycSubmissions],
+                notifications: [
+                  mkNotif('compliance', 'kyc', 'New KYC submission', `${details.company} submitted KYC/KYB for review.`, `/compliance/kyc?focus=${focusId}`),
+                  ...demo.notifications,
+                ],
+              },
+            },
+          }
+        }),
+
+      approveKyc: (id) =>
+        setState((prev) => {
+          const worldKey = prev.activeAccountId ?? 'demo'
+          const w = prev.worlds[worldKey]
+          const sub = w.kycSubmissions.find((k) => k.id === id)
+          if (!sub) return prev
+          const isPrimary = !sub.accountId && sub.company === ROLE_COMPANY[sub.role]
+          return {
+            ...prev,
+            accounts: sub.accountId
+              ? prev.accounts.map((a) => (a.id === sub.accountId ? { ...a, kyc: 'verified' } : a))
+              : prev.accounts,
+            worlds: {
+              ...prev.worlds,
+              [worldKey]: {
+                ...w,
+                kycSubmissions: w.kycSubmissions.map((k) =>
+                  k.id === id ? { ...k, status: 'verified', reviewedAt: 'Just now', requestedInfo: undefined } : k,
+                ),
+                kyc: isPrimary ? { ...w.kyc, [sub.role]: 'verified' } : w.kyc,
+                notifications: isPrimary
+                  ? [mkNotif(sub.role, 'kyc', 'KYC verified', `${sub.company} is fully verified — all features are unlocked.`, `/${sub.role}`), ...w.notifications]
+                  : w.notifications,
+              },
+            },
           }
         }),
 
       rejectKyc: (id, reason) =>
-        patch((s) => {
-          const sub = s.kycSubmissions.find((k) => k.id === id)
-          if (!sub) return s
-          const isPrimary = sub.company === ROLE_COMPANY[sub.role]
+        setState((prev) => {
+          const worldKey = prev.activeAccountId ?? 'demo'
+          const w = prev.worlds[worldKey]
+          const sub = w.kycSubmissions.find((k) => k.id === id)
+          if (!sub) return prev
+          const isPrimary = !sub.accountId && sub.company === ROLE_COMPANY[sub.role]
           return {
-            ...s,
-            kycSubmissions: s.kycSubmissions.map((k) =>
-              k.id === id ? { ...k, status: 'rejected', reviewedAt: 'Just now', requestedInfo: reason } : k,
-            ),
-            kyc: isPrimary ? { ...s.kyc, [sub.role]: 'rejected' } : s.kyc,
-            notifications: isPrimary
-              ? [mkNotif(sub.role, 'kyc', 'KYC rejected', `${sub.company} verification was rejected: ${reason}`, `/${sub.role}`), ...s.notifications]
-              : s.notifications,
+            ...prev,
+            accounts: sub.accountId
+              ? prev.accounts.map((a) => (a.id === sub.accountId ? { ...a, kyc: 'rejected' } : a))
+              : prev.accounts,
+            worlds: {
+              ...prev.worlds,
+              [worldKey]: {
+                ...w,
+                kycSubmissions: w.kycSubmissions.map((k) =>
+                  k.id === id ? { ...k, status: 'rejected', reviewedAt: 'Just now', requestedInfo: reason } : k,
+                ),
+                kyc: isPrimary ? { ...w.kyc, [sub.role]: 'rejected' } : w.kyc,
+                notifications: isPrimary
+                  ? [mkNotif(sub.role, 'kyc', 'KYC rejected', `${sub.company} verification was rejected: ${reason}`, `/${sub.role}`), ...w.notifications]
+                  : w.notifications,
+              },
+            },
           }
         }),
 
       requestKycInfo: (id, note) =>
-        patch((s) => {
-          const sub = s.kycSubmissions.find((k) => k.id === id)
-          if (!sub) return s
-          const isPrimary = sub.company === ROLE_COMPANY[sub.role]
+        setState((prev) => {
+          const worldKey = prev.activeAccountId ?? 'demo'
+          const w = prev.worlds[worldKey]
+          const sub = w.kycSubmissions.find((k) => k.id === id)
+          if (!sub) return prev
+          const isPrimary = !sub.accountId && sub.company === ROLE_COMPANY[sub.role]
           return {
-            ...s,
-            kycSubmissions: s.kycSubmissions.map((k) =>
-              k.id === id ? { ...k, status: 'info_requested', requestedInfo: note, reviewedAt: 'Just now' } : k,
-            ),
-            kyc: isPrimary ? { ...s.kyc, [sub.role]: 'info_requested' } : s.kyc,
-            notifications: isPrimary
-              ? [mkNotif(sub.role, 'kyc', 'More information requested', note, `/${sub.role}`), ...s.notifications]
-              : s.notifications,
+            ...prev,
+            accounts: sub.accountId
+              ? prev.accounts.map((a) => (a.id === sub.accountId ? { ...a, kyc: 'info_requested' } : a))
+              : prev.accounts,
+            worlds: {
+              ...prev.worlds,
+              [worldKey]: {
+                ...w,
+                kycSubmissions: w.kycSubmissions.map((k) =>
+                  k.id === id ? { ...k, status: 'info_requested', requestedInfo: note, reviewedAt: 'Just now' } : k,
+                ),
+                kyc: isPrimary ? { ...w.kyc, [sub.role]: 'info_requested' } : w.kyc,
+                notifications: isPrimary
+                  ? [mkNotif(sub.role, 'kyc', 'More information requested', note, `/${sub.role}`), ...w.notifications]
+                  : w.notifications,
+              },
+            },
           }
         }),
 
@@ -792,7 +1121,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         })),
 
       withdraw: (amount, currency, lab) => {
-        const balance = lab ? state.labWalletNGN : currency === 'NGN' ? state.walletNGN : state.walletUSD
+        const balance = lab ? world.labWalletNGN : currency === 'NGN' ? world.walletNGN : world.walletUSD
         if (amount <= 0 || amount > balance) return false
         patch((s) => {
           const tx: Transaction = {
@@ -912,7 +1241,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         } catch {
           /* ignore */
         }
-        setState(initialState())
+        setState(initialApp())
       },
     }
   }, [state])

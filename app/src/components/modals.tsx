@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { BadgeCheck, Check, FileSignature, Minus, Pencil, Plus, Save, Send, ShieldCheck, ShoppingCart, Wallet } from 'lucide-react'
+import { BadgeCheck, Check, Download, ExternalLink, FileSignature, Minus, Pencil, Plus, Save, Send, Share2, ShieldCheck, ShoppingCart, Wallet } from 'lucide-react'
 import {
   Badge,
   Button,
@@ -12,12 +12,15 @@ import {
   MineralIcon,
   SectionLabel,
   Select,
+  StatusPill,
   Textarea,
   TimePicker,
   useToast,
 } from '@/components/ui'
 import { useStore, newId } from '@/store/AppStore'
 import { BUYER_CO, DIRECTORS, NIGERIAN_STATES, lgasFor } from '@/data/mock'
+import { downloadPassportCertificate } from '@/lib/certificate'
+import { PassportQR } from '@/components/PassportQR'
 import {
   CURRENCY_OPTIONS,
   DELIVERY_MODE,
@@ -114,9 +117,18 @@ export function MineralModal({
       store.updateInventory(item.id, fields)
       toast.success('Mineral updated', `${titleCase(mineral)} inventory saved.`)
     } else {
-      store.addInventory({ id: newId('inv'), updatedAt: 'Just now', ...fields })
-      toast.success('Mineral added', `${titleCase(mineral)} is now in your inventory.`)
+      store.addInventory({ id: newId('inv'), updatedAt: 'Just now', vetting: 'pending', ...fields })
+      toast.success('Mineral submitted', `${titleCase(mineral)} was added — it's pending review before it can be listed.`)
     }
+    onClose()
+  }
+
+  const inReview = !!item && store.vettingQueue.some((v) => v.inventoryId === item.id && v.status === 'pending')
+
+  const submitVetting = () => {
+    if (!item) return
+    store.submitMineralVetting(item.id)
+    toast.success('Submitted for vetting', `${titleCase(item.mineral)} was sent to compliance for review.`)
     onClose()
   }
 
@@ -132,6 +144,11 @@ export function MineralModal({
     mode === 'view' ? (
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={onClose}>Close</Button>
+        {item?.vetting === 'pending' && !inReview && (
+          <Button variant="secondary" leftIcon={<ShieldCheck size={16} />} onClick={submitVetting}>
+            Submit for vetting
+          </Button>
+        )}
         <Button leftIcon={<Pencil size={16} />} onClick={() => setMode('edit')}>
           Edit mineral
         </Button>
@@ -154,7 +171,16 @@ export function MineralModal({
               <p className="text-base font-semibold capitalize text-forest">{item.mineral}</p>
               <p className="mt-0.5 text-xs text-forest-400">Updated {item.updatedAt}</p>
             </div>
-            <Badge tone="lime" dot className="capitalize">{item.supplyFrequency}</Badge>
+            <div className="flex flex-col items-end gap-1.5">
+              {item.vetting === 'approved' ? (
+                <Badge tone="success" dot>Approved</Badge>
+              ) : inReview ? (
+                <Badge tone="warning" dot>In review</Badge>
+              ) : (
+                <Badge tone="neutral" dot>Pending review</Badge>
+              )}
+              <Badge tone="lime" dot className="capitalize">{item.supplyFrequency}</Badge>
+            </div>
           </div>
 
           <SectionLabel>Product details</SectionLabel>
@@ -173,6 +199,110 @@ export function MineralModal({
             <KeyValue label="State" value={item.state} />
             <KeyValue label="LGA" value={item.lga} />
           </dl>
+
+          <hr className="my-5 border-hair" />
+          <SectionLabel>Digital Mineral Passport</SectionLabel>
+          {(() => {
+            // Created-account minerals receive their passport through Compliance vetting.
+            if (item.vetting) {
+              if (item.vetting === 'approved' && item.passportNumber) {
+                return (
+                  <div className="flex items-center justify-between rounded-2xl border border-teal/30 bg-teal-soft/40 p-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-forest">Digital Passport issued</p>
+                      <p className="font-mono text-xs text-forest-400">{item.passportNumber}</p>
+                    </div>
+                    <BadgeCheck size={20} className="text-teal" />
+                  </div>
+                )
+              }
+              return (
+                <div className="rounded-2xl border border-dashed border-hair bg-panel/40 p-4 text-center">
+                  <ShieldCheck size={22} className="mx-auto text-forest-300" />
+                  <p className="mt-2 text-sm font-medium text-forest">{inReview ? 'Vetting in progress' : 'Awaiting vetting'}</p>
+                  <p className="mt-0.5 text-xs text-forest-400">
+                    {inReview
+                      ? 'Compliance is reviewing this mineral. A Digital Passport is issued once approved.'
+                      : 'Submit this mineral for vetting to receive a Digital Passport before listing.'}
+                  </p>
+                </div>
+              )
+            }
+            const passport = store.passports.find((p) => p.inventoryId === item.id && p.status !== 'rejected')
+            if (!passport) {
+              return (
+                <div className="rounded-2xl border border-dashed border-hair bg-panel/40 p-4 text-center">
+                  <ShieldCheck size={22} className="mx-auto text-forest-300" />
+                  <p className="mt-2 text-sm font-medium text-forest">No passport yet</p>
+                  <p className="mt-0.5 text-xs text-forest-400">
+                    Send this batch to compliance for on-field verification and a blockchain-anchored passport.
+                  </p>
+                  <Button
+                    className="mt-3"
+                    size="sm"
+                    leftIcon={<ShieldCheck size={15} />}
+                    onClick={() => {
+                      store.requestPassport(item.id)
+                      toast.success('Passport requested', `${titleCase(item.mineral)} sent to compliance for verification.`)
+                    }}
+                  >
+                    Request passport
+                  </Button>
+                </div>
+              )
+            }
+            if (passport.status === 'verified') {
+              const url = `${window.location.origin}/passport/${passport.number}`
+              return (
+                <div className="rounded-2xl border border-teal/30 bg-teal-soft/40 p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <BadgeCheck size={18} className="shrink-0 text-teal" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-teal">Verified &amp; anchored</p>
+                        <p className="font-mono text-xs text-forest-400">{passport.number}</p>
+                      </div>
+                    </div>
+                    <StatusPill status={passport.status} />
+                  </div>
+                  <div className="mt-4 flex flex-col items-center gap-1.5">
+                    <div className="rounded-2xl border border-hair bg-white p-2.5">
+                      <PassportQR value={url} size={144} />
+                    </div>
+                    <p className="text-[11px] text-forest-400">Scan to view the public passport</p>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    <Button size="sm" variant="secondary" leftIcon={<ExternalLink size={14} />} onClick={() => window.open(`/passport/${passport.number}`, '_blank')}>
+                      View
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      leftIcon={<Share2 size={14} />}
+                      onClick={() => {
+                        navigator.clipboard?.writeText(url)
+                        toast.success('Public link copied', url)
+                      }}
+                    >
+                      Copy link
+                    </Button>
+                    <Button size="sm" variant="secondary" leftIcon={<Download size={14} />} onClick={() => downloadPassportCertificate(passport)}>
+                      Certificate
+                    </Button>
+                  </div>
+                </div>
+              )
+            }
+            return (
+              <div className="flex items-center justify-between rounded-2xl border border-hair bg-panel/40 p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-forest">Verification in progress</p>
+                  <p className="font-mono text-xs text-forest-400">{passport.number}</p>
+                </div>
+                <StatusPill status={passport.status} />
+              </div>
+            )
+          })()}
         </>
       ) : (
         <>
@@ -300,8 +430,10 @@ export function SamplingModal({ open, onClose }: { open: boolean; onClose: () =>
 export function CreateListingModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const store = useStore()
   const toast = useToast()
-  const inventoryMinerals = [...new Set(store.inventory.map((i) => i.mineral))]
-  const [mineral, setMineral] = useState<Mineral>(inventoryMinerals[0] ?? 'tin')
+  // Only vetted (approved) minerals can be listed on the marketplace.
+  const vettedMinerals = [...new Set(store.inventory.filter((i) => i.vetting !== 'pending').map((i) => i.mineral))]
+  const noVetted = vettedMinerals.length === 0
+  const [mineral, setMineral] = useState<Mineral>(vettedMinerals[0] ?? 'tin')
   const [grade, setGrade] = useState('71.4')
   const [quantity, setQuantity] = useState('')
   const [unit, setUnit] = useState<Unit>('ton')
@@ -310,6 +442,10 @@ export function CreateListingModal({ open, onClose }: { open: boolean; onClose: 
   const [state, setState] = useState('Plateau')
 
   const submit = () => {
+    if (noVetted) {
+      toast.error('No vetted minerals', 'Add a mineral and pass review before publishing a listing.')
+      return
+    }
     const qty = n(quantity) || 1
     store.addListing({
       id: newId('lst'),
@@ -333,18 +469,23 @@ export function CreateListingModal({ open, onClose }: { open: boolean; onClose: 
       open={open}
       onClose={onClose}
       title="Create listing"
-      subtitle="Listings can only reference minerals already in your inventory."
+      subtitle="Only vetted minerals from your inventory can be listed."
       footer={
         <FooterButtons onCancel={onClose}>
-          <Button leftIcon={<Plus size={16} />} onClick={submit}>Publish listing</Button>
+          <Button leftIcon={<Plus size={16} />} onClick={submit} disabled={noVetted}>Publish listing</Button>
         </FooterButtons>
       }
     >
       <SectionLabel>Add your product</SectionLabel>
+      {noVetted && (
+        <div className="mb-4 rounded-2xl border border-orange/30 bg-orange-soft/40 px-4 py-3 text-sm text-forest-500">
+          You don't have any vetted minerals yet. Add a mineral and submit it for vetting — once approved it can be listed.
+        </div>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Mineral" required hint="From your inventory only" className="sm:col-span-2">
+        <Field label="Mineral" required hint="Vetted inventory only" className="sm:col-span-2">
           <Select value={mineral} onChange={(e) => setMineral(e.target.value as Mineral)}>
-            {inventoryMinerals.map((m) => <option key={m} value={m} className="capitalize">{m}</option>)}
+            {vettedMinerals.map((m) => <option key={m} value={m} className="capitalize">{m}</option>)}
           </Select>
         </Field>
         <Field label="Grade (%)" required><Input type="number" value={grade} onChange={(e) => setGrade(e.target.value)} /></Field>
