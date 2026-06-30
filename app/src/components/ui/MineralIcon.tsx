@@ -75,10 +75,13 @@ export function MineralIcon({
         src={resolved}
         alt={mineral}
         title={mineral}
+        loading="lazy"
+        decoding="async"
         onError={() => setErrored(true)}
         className={cn(
-          'shrink-0 bg-panel object-cover shadow-card outline outline-1 -outline-offset-1 outline-black/10',
-          radius,
+          // Free-standing product photo: no box/outline so the mineral isn't
+          // clipped — just the cut-out PNG with a soft shadow that follows its shape.
+          'shrink-0 select-none object-contain drop-shadow-[0_2px_4px_rgba(2,40,30,0.18)]',
           sizes[size],
           className,
         )}

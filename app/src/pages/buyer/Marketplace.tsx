@@ -145,6 +145,8 @@ export function BuyerMarketplace() {
                 <img
                   src={photo}
                   alt={m.mineral}
+                  loading="lazy"
+                  decoding="async"
                   className="max-h-48 w-auto select-none object-contain drop-shadow-[0_18px_30px_rgba(2,40,30,0.18)]"
                 />
               ) : (
