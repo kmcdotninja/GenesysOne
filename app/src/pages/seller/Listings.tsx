@@ -66,7 +66,7 @@ export function SellerListings() {
       header: 'Mineral',
       cell: (r) => (
         <div className="flex items-center gap-3">
-          <MineralIcon mineral={r.mineral} />
+          <MineralIcon mineral={r.mineral} src={r.image} shape="rounded" size="lg" />
           <div>
             <p className="flex items-center gap-1.5 font-semibold capitalize text-forest">
               {r.mineral}
@@ -170,7 +170,7 @@ export function SellerListings() {
         {active && (
           <div className="space-y-5">
             <div className="flex items-center gap-4 rounded-2xl bg-panel/60 p-4">
-              <MineralIcon mineral={active.mineral} size="xl" />
+              <MineralIcon mineral={active.mineral} src={active.image} shape="rounded" size="xl" />
               <div className="flex-1">
                 <p className="text-lg font-semibold capitalize text-forest">{active.mineral}</p>
                 <p className="text-sm text-forest-400">{active.quantity} {active.unit} · grade {active.grade}%</p>

@@ -110,7 +110,7 @@ export function CompliancePassports() {
   const doApprove = () => {
     if (!active) return
     approvePassport(active.id)
-    toast.success('Passport verified', `${active.number} anchored on Stellar — now live.`)
+    toast.success('Passport verified', `${active.number} anchored on Ethereum — now live.`)
   }
   const doReject = () => {
     if (!active) return
@@ -124,7 +124,7 @@ export function CompliancePassports() {
       header: 'Product',
       cell: (p) => (
         <div className="flex items-center gap-3">
-          <MineralIcon mineral={p.mineral} />
+          <MineralIcon mineral={p.mineral} shape="rounded" size="lg" />
           <div>
             <p className="font-semibold capitalize text-forest">{p.productName}</p>
             <p className="font-mono text-xs text-forest-400">{p.number}</p>
@@ -148,7 +148,7 @@ export function CompliancePassports() {
     <div>
       <PageHeader
         title="Digital Mineral Passports"
-        subtitle="Assign field agents, run verification, and anchor approved passports on Stellar."
+        subtitle="Assign field agents, run verification, and anchor approved passports on Ethereum."
       />
 
       {pendingVetting.length > 0 && (
@@ -159,7 +159,7 @@ export function CompliancePassports() {
           <div className="space-y-2.5">
             {pendingVetting.map((v) => (
               <div key={v.id} className="flex items-center gap-3 rounded-2xl border border-hair p-3">
-                <MineralIcon mineral={v.mineral} size="lg" />
+                <MineralIcon mineral={v.mineral} shape="rounded" size="lg" />
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold capitalize text-forest">{v.mineral}</p>
                   <p className="text-xs text-forest-400">
@@ -219,7 +219,7 @@ export function CompliancePassports() {
         {active && (
           <div className="space-y-5">
             <div className="flex items-center gap-4 rounded-2xl bg-panel/60 p-4">
-              <MineralIcon mineral={active.mineral} size="xl" />
+              <MineralIcon mineral={active.mineral} shape="rounded" size="xl" />
               <div className="min-w-0 flex-1">
                 <p className="text-lg font-semibold capitalize text-forest">{active.productName}</p>
                 <p className="text-sm text-forest-400">{active.gradeLabel} · {active.quantity} {active.unit === 'ton' ? 'MT' : active.unit}</p>

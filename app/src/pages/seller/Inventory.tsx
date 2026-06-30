@@ -51,7 +51,7 @@ export function SellerInventory() {
       header: 'Mineral',
       cell: (r) => (
         <div className="flex items-center gap-3">
-          <MineralIcon mineral={r.mineral} />
+          <MineralIcon mineral={r.mineral} src={r.image} shape="rounded" size="lg" />
           <div>
             <p className="font-semibold capitalize text-forest">{r.mineral}</p>
             <p className="text-xs capitalize text-forest-400">{r.locationType}</p>

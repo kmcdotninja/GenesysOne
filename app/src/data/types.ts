@@ -88,6 +88,8 @@ export interface InventoryItem {
   deliveryMode: (typeof DELIVERY_MODE)[number]
   state: string
   lga: string
+  /** Product photo (data URL), shown on the inventory & listing tables. */
+  image?: string
   /** Vetting gate before a mineral can be listed. Undefined = legacy/approved. */
   vetting?: 'pending' | 'approved'
   /** Digital Passport number, set once compliance approves vetting. */
@@ -122,6 +124,8 @@ export interface Listing {
   state: string
   status: ListingStatus
   certified: boolean
+  /** Product photo (data URL), inherited from inventory when listed. */
+  image?: string
   createdAt: string
 }
 
@@ -411,8 +415,8 @@ export interface Passport {
   // traceability
   journey?: JourneyStage[]
   custody?: CustodyEvent[]
-  // blockchain anchor (Stellar)
-  chain: 'Stellar'
+  // blockchain anchor (Ethereum)
+  chain: 'Ethereum'
   txHash?: string
   anchoredAt?: string
 }

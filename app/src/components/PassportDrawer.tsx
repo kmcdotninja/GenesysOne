@@ -27,7 +27,7 @@ export function PassportDrawer({
 
   const verified = passport.status === 'verified'
   const publicUrl = `${window.location.origin}/passport/${passport.number}`
-  const stellarHash = passport.txHash?.replace('stellar:', '')
+  const chainTx = passport.txHash
   const gps = `${Math.abs(passport.gps.lat).toFixed(4)}° ${passport.gps.lat >= 0 ? 'N' : 'S'}, ${Math.abs(passport.gps.lng).toFixed(4)}° ${passport.gps.lng >= 0 ? 'E' : 'W'}`
 
   const copyLink = () => {
@@ -62,7 +62,7 @@ export function PassportDrawer({
     >
       <div className="space-y-5">
         <div className="flex items-center gap-4 rounded-2xl bg-panel/60 p-4">
-          <MineralIcon mineral={passport.mineral} size="xl" />
+          <MineralIcon mineral={passport.mineral} shape="rounded" size="xl" />
           <div className="min-w-0 flex-1">
             <p className="text-lg font-semibold capitalize text-forest">{passport.productName}</p>
             <p className="text-sm text-forest-400">
@@ -143,14 +143,14 @@ export function PassportDrawer({
             <p className="mt-1.5 flex items-center gap-1.5 break-all font-mono text-[11px] text-forest-400">
               <Hash size={12} className="shrink-0" /> {passport.txHash}
             </p>
-            {stellarHash && (
+            {chainTx && (
               <a
-                href={`https://stellar.expert/explorer/public/tx/${stellarHash}`}
+                href={`https://etherscan.io/tx/${chainTx}`}
                 target="_blank"
                 rel="noreferrer"
                 className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-teal hover:underline"
               >
-                <ExternalLink size={12} /> Verify on Stellar · anchored {passport.anchoredAt}
+                <ExternalLink size={12} /> Verify on Ethereum · anchored {passport.anchoredAt}
               </a>
             )}
           </div>

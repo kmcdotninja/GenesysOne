@@ -24,6 +24,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Mark } from '@/components/Logo'
+import { mineralImage } from '@/components/ui'
 import { PassportQR } from '@/components/PassportQR'
 import { useStore } from '@/store/AppStore'
 import { MINERAL_ELEMENT } from '@/data/mock'
@@ -103,12 +104,13 @@ export function PublicPassport() {
   }
 
   const el = MINERAL_ELEMENT[passport.mineral]
+  const photo = mineralImage(passport.mineral)
   const verified = passport.status === 'verified'
   const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/passport/${passport.number}`
-  const stellarHash = passport.txHash?.replace('stellar:', '')
+  const chainTx = passport.txHash
 
   const verifyOnChain = () => {
-    if (stellarHash) window.open(`https://stellar.expert/explorer/public/tx/${stellarHash}`, '_blank')
+    if (chainTx) window.open(`https://etherscan.io/tx/${chainTx}`, '_blank')
   }
 
   return (
@@ -149,6 +151,14 @@ export function PublicPassport() {
             {/* Dark hero card */}
             <div className="relative overflow-hidden rounded-3xl bg-forest p-6 text-white">
               <div className="pointer-events-none absolute -right-16 -top-10 h-56 w-56 rounded-full bg-lime/30 blur-3xl" />
+              {photo && (
+                <img
+                  src={photo}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -bottom-3 -right-2 w-44 select-none drop-shadow-[0_14px_34px_rgba(0,0,0,0.55)] sm:w-56"
+                />
+              )}
               <div className="relative">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-white/50">Passport ID</p>
                 <div className="mt-1 flex items-center justify-between gap-3">
@@ -242,7 +252,7 @@ export function PublicPassport() {
                 </ol>
                 {passport.anchoredAt && (
                   <a
-                    href={stellarHash ? `https://stellar.expert/explorer/public/tx/${stellarHash}` : '#'}
+                    href={chainTx ? `https://etherscan.io/tx/${chainTx}` : '#'}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-teal hover:underline"
@@ -344,7 +354,7 @@ export function PublicPassport() {
                     onClick={verifyOnChain}
                     className="flex items-center justify-center gap-1.5 rounded-xl border border-hair px-3 py-2 text-xs font-semibold text-forest-500 transition-colors hover:bg-panel"
                   >
-                    <Link2 size={14} /> Verify on Stellar
+                    <Link2 size={14} /> Verify on Ethereum
                   </button>
                   <button
                     onClick={() => window.print()}
@@ -392,7 +402,7 @@ export function PublicPassport() {
 
         {/* Footer trust band */}
         <div className="mt-5 grid gap-6 rounded-3xl bg-forest px-6 py-7 text-white sm:grid-cols-2 lg:grid-cols-5">
-          <TrustProp icon={ShieldCheck} title="Blockchain Verified" body="Immutable & tamper-proof record on Stellar" />
+          <TrustProp icon={ShieldCheck} title="Blockchain Verified" body="Immutable & tamper-proof record on Ethereum" />
           <TrustProp icon={Leaf} title="Responsible Sourcing" body="Ethically sourced with respect for people and planet" />
           <TrustProp icon={Eye} title="Transparent Supply Chain" body="End-to-end visibility from mine to market" />
           <TrustProp icon={Globe} title="ESG Compliant" body="Aligned with global ESG standards" />

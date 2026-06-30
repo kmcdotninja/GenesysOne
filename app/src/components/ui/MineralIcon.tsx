@@ -1,6 +1,28 @@
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/cn'
 
 type GemStyle = { sym: string; from: string; to: string; ink: string }
+
+/** Stock product photos for each mineral, served from /public/minerals. */
+const MINERAL_IMAGE: Record<string, string> = {
+  tin: '/minerals/Tin.png',
+  lithium: '/minerals/Lithium.png',
+  columbite: '/minerals/Columbite.png',
+  lead: '/minerals/Lead.png',
+  zinc: '/minerals/Zinc.png',
+  copper: '/minerals/Copper.png',
+  wolframite: '/minerals/Wolframite.png',
+  monazite: '/minerals/Monazite.png',
+  tantalite: '/minerals/Tantalite.png',
+  beryllium: '/minerals/Beryllium.png',
+  gold: '/minerals/Gold.png',
+  spodumene: '/minerals/Spodumene.png',
+}
+
+/** Resolve a mineral's stock photo URL (undefined for unknown minerals). */
+export function mineralImage(mineral: string): string | undefined {
+  return MINERAL_IMAGE[mineral.toLowerCase()]
+}
 
 const MINERAL_STYLE: Record<string, GemStyle> = {
   tin: { sym: 'Sn', from: '#9fb4c4', to: '#5b7388', ink: '#fff' },
@@ -30,16 +52,45 @@ export function MineralIcon({
   mineral,
   size = 'md',
   className,
+  src,
+  shape = 'circle',
 }: {
   mineral: string
   size?: keyof typeof sizes
   className?: string
+  /** Explicit product photo (e.g. a seller upload). Falls back to the mineral's
+   *  stock photo, then to the colored glyph if the image can't load. */
+  src?: string
+  shape?: 'circle' | 'rounded'
 }) {
+  const radius = shape === 'rounded' ? 'rounded-xl' : 'rounded-full'
+  const resolved = src ?? mineralImage(mineral)
+  const [errored, setErrored] = useState(false)
+  // Reset the error flag when the image source changes (e.g. row reuse).
+  useEffect(() => setErrored(false), [resolved])
+
+  if (resolved && !errored) {
+    return (
+      <img
+        src={resolved}
+        alt={mineral}
+        title={mineral}
+        onError={() => setErrored(true)}
+        className={cn(
+          'shrink-0 bg-panel object-cover shadow-card outline outline-1 -outline-offset-1 outline-black/10',
+          radius,
+          sizes[size],
+          className,
+        )}
+      />
+    )
+  }
   const s = MINERAL_STYLE[mineral.toLowerCase()] ?? FALLBACK
   return (
     <span
       className={cn(
-        'inline-flex items-center justify-center rounded-full font-bold ring-2 ring-white shadow-card select-none',
+        'inline-flex shrink-0 items-center justify-center font-bold ring-2 ring-white shadow-card select-none',
+        radius,
         sizes[size],
         className,
       )}

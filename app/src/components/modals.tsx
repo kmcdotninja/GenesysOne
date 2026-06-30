@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { BadgeCheck, Check, Download, ExternalLink, FileSignature, Minus, Pencil, Plus, Save, Send, Share2, ShieldCheck, ShoppingCart, Wallet } from 'lucide-react'
+import { BadgeCheck, Check, Download, ExternalLink, FileSignature, ImagePlus, Minus, Pencil, Plus, Save, Send, Share2, ShieldCheck, ShoppingCart, Trash2, Wallet } from 'lucide-react'
 import {
   Badge,
   Button,
@@ -86,6 +86,15 @@ export function MineralModal({
   const [deliveryMode, setDeliveryMode] = useState<string>(item?.deliveryMode ?? 'delivery')
   const [state, setState] = useState(item?.state ?? 'Plateau')
   const [lga, setLga] = useState(item?.lga ?? lgasFor('Plateau')[0])
+  const [image, setImage] = useState<string | undefined>(item?.image)
+
+  const onPickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setImage(reader.result as string)
+    reader.readAsDataURL(file)
+  }
 
   // Discard unsaved edits and return to the read-only view.
   const resetToItem = () => {
@@ -98,6 +107,7 @@ export function MineralModal({
     setDeliveryMode(item?.deliveryMode ?? 'delivery')
     setState(item?.state ?? 'Plateau')
     setLga(item?.lga ?? lgasFor('Plateau')[0])
+    setImage(item?.image)
     setMode('view')
   }
 
@@ -112,6 +122,7 @@ export function MineralModal({
       deliveryMode: deliveryMode as never,
       state,
       lga,
+      image,
     }
     if (isExisting && item) {
       store.updateInventory(item.id, fields)
@@ -166,7 +177,7 @@ export function MineralModal({
       {mode === 'view' && item ? (
         <>
           <div className="mb-5 flex items-center gap-3 rounded-2xl bg-panel/60 p-4">
-            <MineralIcon mineral={item.mineral} size="xl" />
+            <MineralIcon mineral={item.mineral} src={item.image} shape="rounded" size="xl" />
             <div className="min-w-0 flex-1">
               <p className="text-base font-semibold capitalize text-forest">{item.mineral}</p>
               <p className="mt-0.5 text-xs text-forest-400">Updated {item.updatedAt}</p>
@@ -306,6 +317,41 @@ export function MineralModal({
         </>
       ) : (
         <>
+          <SectionLabel>Product photo</SectionLabel>
+          <div className="mb-5">
+            {image ? (
+              <div className="flex items-center gap-4">
+                <img
+                  src={image}
+                  alt="Product"
+                  className="h-24 w-24 rounded-2xl object-cover outline outline-1 -outline-offset-1 outline-black/10"
+                />
+                <div className="flex flex-col gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-hair px-3 py-2 text-xs font-semibold text-forest-500 transition-colors hover:bg-panel">
+                    <ImagePlus size={14} /> Change photo
+                    <input type="file" accept="image/*" className="hidden" onChange={onPickImage} />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setImage(undefined)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-hair px-3 py-2 text-xs font-semibold text-rose-ink transition-colors hover:bg-rose-soft/40"
+                  >
+                    <Trash2 size={14} /> Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="flex h-28 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-hair bg-panel/40 text-center transition-colors hover:border-forest-300 hover:bg-panel">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-forest-400 shadow-card">
+                  <ImagePlus size={18} />
+                </span>
+                <span className="text-sm font-semibold text-forest">Add a product photo</span>
+                <span className="text-xs text-forest-400">PNG or JPG · shown on inventory &amp; listings</span>
+                <input type="file" accept="image/*" className="hidden" onChange={onPickImage} />
+              </label>
+            )}
+          </div>
+
           <SectionLabel>Product details</SectionLabel>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Mineral" required className="sm:col-span-2">
@@ -447,6 +493,7 @@ export function CreateListingModal({ open, onClose }: { open: boolean; onClose: 
       return
     }
     const qty = n(quantity) || 1
+    const image = store.inventory.find((i) => i.mineral === mineral)?.image
     store.addListing({
       id: newId('lst'),
       mineral,
@@ -458,6 +505,7 @@ export function CreateListingModal({ open, onClose }: { open: boolean; onClose: 
       state,
       status: 'pending',
       certified: false,
+      image,
       createdAt: 'Just now',
     })
     toast.success('Listing published', `${titleCase(mineral)} listing is pending approval.`)

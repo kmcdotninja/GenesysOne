@@ -33,7 +33,7 @@ const PIPELINE: { icon: LucideIcon; title: string; sub: string }[] = [
   { icon: MapPin, title: 'On-field capture', sub: 'GPS · photos · ESG · sealed sample' },
   { icon: FlaskConical, title: 'Lab assay', sub: 'Grade, purity & sign-off' },
   { icon: ShieldCheck, title: 'Approve', sub: 'Compliance verifies the package' },
-  { icon: Link2, title: 'Anchored', sub: 'Hash on Stellar · QR goes live' },
+  { icon: Link2, title: 'Anchored', sub: 'Hash on Ethereum · QR goes live' },
 ]
 
 export function ComplianceDashboard() {
@@ -52,7 +52,7 @@ export function ComplianceDashboard() {
       header: 'Product',
       cell: (p) => (
         <div className="flex items-center gap-3">
-          <MineralIcon mineral={p.mineral} />
+          <MineralIcon mineral={p.mineral} shape="rounded" size="lg" />
           <div>
             <p className="font-semibold capitalize text-forest">{p.productName}</p>
             <p className="font-mono text-xs text-forest-400">{p.number}</p>
@@ -105,7 +105,7 @@ export function ComplianceDashboard() {
       <Card className="mt-5">
         <CardHeader
           title="Passports anchored · last 18 weeks"
-          subtitle="Digital Mineral Passports verified on Stellar"
+          subtitle="Digital Mineral Passports verified on Ethereum"
           action={<Badge tone="success" dot>+27%</Badge>}
         />
         <AreaChart

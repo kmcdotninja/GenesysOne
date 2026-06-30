@@ -165,11 +165,11 @@ function nextPassportNumber(mineral: keyof typeof MINERAL_ELEMENT): string {
   const sym = MINERAL_ELEMENT[mineral].symbol.toUpperCase()
   return `GO-${sym}-${new Date().getFullYear()}-${String(passportSeq++).padStart(6, '0')}`
 }
-/** Mock a Stellar transaction id (56-char base32) for the on-chain anchor. */
-function stellarTx(): string {
-  const a = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
-  let id = ''
-  for (let i = 0; i < 56; i++) id += a[Math.floor(Math.random() * a.length)]
+/** Mock an Ethereum transaction hash (0x + 64 hex) for the on-chain anchor. */
+function ethTx(): string {
+  const hex = '0123456789abcdef'
+  let id = '0x'
+  for (let i = 0; i < 64; i++) id += hex[Math.floor(Math.random() * 16)]
   return id
 }
 /** The "playable" account company behind each role — used to tell whether a
@@ -768,7 +768,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             gps: site?.gps ?? { lat: 9.0, lng: 8.6 },
             requestedAt: 'Just now',
             updatedAt: 'Just now',
-            chain: 'Stellar',
+            chain: 'Ethereum',
           }
           return {
             ...s,
@@ -812,7 +812,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             label: `On-field evaluation${input.photos ? ` · ${input.photos} compliance photos` : ''} · sample sealed in QR bag`,
             actor: `${passport.agentName ?? 'Field agent'} · Agent`,
             at: 'Just now',
-            txHash: stellarTx(),
+            txHash: ethTx(),
           }
           const esgEvent: CustodyEvent | null = input.esg
             ? {
@@ -848,10 +848,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         patch((s) => {
           const passport = s.passports.find((p) => p.id === passportId)
           if (!passport) return s
-          const tx = stellarTx()
+          const tx = ethTx()
           const anchor: CustodyEvent = {
             id: newId('c'),
-            label: 'Passport approved & anchored on Stellar',
+            label: 'Passport approved & anchored on Ethereum',
             actor: COMPLIANCE_CO,
             at: 'Just now',
             txHash: tx,
@@ -868,8 +868,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
                     esg: p.esg ?? defaultEsg(),
                     carbonTotal: p.carbonTotal ?? Math.round((p.quantity * 0.15 + 5) * 10) / 10,
                     carbonIntensity: p.carbonIntensity ?? 1.9,
-                    chain: 'Stellar',
-                    txHash: `stellar:${tx}`,
+                    chain: 'Ethereum',
+                    txHash: tx,
                     anchoredAt: 'Just now',
                     custody: [...(p.custody ?? []), anchor],
                   }
@@ -1171,7 +1171,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             label: 'Lab assay completed & signed off',
             actor: `${input.signedBy} · Lab`,
             at: 'Just now',
-            txHash: stellarTx(),
+            txHash: ethTx(),
           }
           return {
             ...s,

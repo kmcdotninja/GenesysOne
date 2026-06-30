@@ -167,10 +167,10 @@ export const TEST_RESULTS: TestResult[] = [
 
 // ---- Buyer: marketplace ----
 export const MARKET_LISTINGS: MarketListing[] = [
-  { id: 'm1', mineral: 'tin', grade: 71.4, quantity: 60, unit: 'ton', priceAmount: 28500000, priceCurrency: 'NGN', state: 'Plateau', status: 'approved', certified: true, sellerName: 'Jos Highland Minerals Ltd', sellerVerified: true, sellerRating: 4.8, deliveryMode: 'delivery', locationType: 'mine', trend: spark(2), createdAt: '12 Feb 2025', passportNumber: 'GO-SN-2026-000118' },
+  { id: 'm1', mineral: 'tin', grade: 71.4, quantity: 60, unit: 'ton', priceAmount: 28500000, priceCurrency: 'NGN', state: 'Plateau', status: 'approved', certified: true, sellerName: 'Jos Highland Minerals Ltd', sellerVerified: true, sellerRating: 4.8, deliveryMode: 'delivery', locationType: 'mine', trend: spark(2), createdAt: '12 Feb 2025', passportNumber: 'GO-SN-2026-000150' },
   { id: 'm2', mineral: 'lithium', grade: 5.8, quantity: 120, unit: 'ton', priceAmount: 8400000, priceCurrency: 'NGN', state: 'Nasarawa', status: 'approved', certified: true, sellerName: 'Jos Highland Minerals Ltd', sellerVerified: true, sellerRating: 4.8, deliveryMode: 'delivery', locationType: 'warehouse', trend: spark(5), createdAt: '08 Feb 2025', passportNumber: 'GO-LI-2026-000124' },
   { id: 'm3', mineral: 'gold', grade: 91.6, quantity: 12, unit: 'kg', priceAmount: 116000000, priceCurrency: 'NGN', state: 'Zamfara', status: 'approved', certified: true, sellerName: SELLER_CO, sellerVerified: true, sellerRating: 4.6, deliveryMode: 'pickup', locationType: 'mine', trend: spark(1), createdAt: '11 Feb 2025', passportNumber: 'GO-AU-2026-000140' },
-  { id: 'm4', mineral: 'lead', grade: 82.0, quantity: 200, unit: 'ton', priceAmount: 16800000, priceCurrency: 'NGN', state: 'Ebonyi', status: 'approved', certified: false, sellerName: SELLER_CO, sellerVerified: false, sellerRating: 4.1, deliveryMode: 'delivery', locationType: 'warehouse', trend: spark(7), createdAt: '09 Feb 2025' },
+  { id: 'm4', mineral: 'lead', grade: 82.0, quantity: 200, unit: 'ton', priceAmount: 16800000, priceCurrency: 'NGN', state: 'Ebonyi', status: 'approved', certified: true, sellerName: SELLER_CO, sellerVerified: true, sellerRating: 4.3, deliveryMode: 'delivery', locationType: 'warehouse', trend: spark(7), createdAt: '09 Feb 2025', passportNumber: 'GO-PB-2026-000148' },
   { id: 'm5', mineral: 'zinc', grade: 55.3, quantity: 90, unit: 'ton', priceAmount: 9600000, priceCurrency: 'NGN', state: 'Kogi', status: 'approved', certified: true, sellerName: SELLER_CO, sellerVerified: true, sellerRating: 4.4, deliveryMode: 'delivery', locationType: 'mine', trend: spark(3), createdAt: '07 Feb 2025', passportNumber: 'GO-ZN-2026-000142' },
   { id: 'm6', mineral: 'columbite', grade: 64.2, quantity: 50, unit: 'ton', priceAmount: 24000000, priceCurrency: 'NGN', state: 'Nasarawa', status: 'approved', certified: true, sellerName: SELLER_CO, sellerVerified: true, sellerRating: 4.7, deliveryMode: 'pickup', locationType: 'mine', trend: spark(4), createdAt: '06 Feb 2025', passportNumber: 'GO-NB-2026-000145' },
 ]
@@ -275,7 +275,7 @@ export const COMPLIANCE_AGENTS: ComplianceAgent[] = [
   { id: 'ag3', name: 'Chidi Okafor', region: 'North West', status: 'available', assignments: 1 },
 ]
 
-const stellarHash = (s: string) => s
+const ethHash = (s: string) => `0x${s}`
 
 /** Compact builder for a fully-verified, anchored passport (marketplace seed). */
 function marketPassport(
@@ -297,7 +297,7 @@ function marketPassport(
   carbonTotal: number,
   carbonIntensity: number,
 ): Passport {
-  const h = number.replace(/-/g, '').toUpperCase()
+  const h = Array.from(number).map((c) => c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
   return {
     id: `mp_${number}`,
     number,
@@ -330,11 +330,11 @@ function marketPassport(
       { key: 'export', date: '12 May 2026', location: 'Lagos Port' },
     ],
     custody: [
-      { id: `${number}-c1`, label: 'Sample sealed in tamper-proof QR bag', actor: 'Field agent · Compliance', at: '08 May 2026', txHash: (h + '0'.repeat(64)).slice(0, 64).toLowerCase() },
-      { id: `${number}-c2`, label: 'Passport approved & anchored on Stellar', actor: COMPLIANCE_CO, at: '12 May 2026' },
+      { id: `${number}-c1`, label: 'Sample sealed in tamper-proof QR bag', actor: 'Field agent · Compliance', at: '08 May 2026', txHash: `0x${(h + '0'.repeat(64)).slice(0, 64)}` },
+      { id: `${number}-c2`, label: 'Passport approved & anchored on Ethereum', actor: COMPLIANCE_CO, at: '12 May 2026' },
     ],
-    chain: 'Stellar',
-    txHash: `stellar:${(h + 'GENESYSONESTELLARANCHOR2345672345672345672345').slice(0, 56)}`,
+    chain: 'Ethereum',
+    txHash: `0x${(h + 'a1f5c2b9d8e74630aa12bd3490e7f8c1ee2299aa44bb55cc66dd77ee88ff0011').slice(0, 64)}`,
     anchoredAt: '12 May 2026',
   }
 }
@@ -383,12 +383,12 @@ export const PASSPORTS: Passport[] = [
       { key: 'export', date: '15 May 2026', location: 'Lagos Port' },
     ],
     custody: [
-      { id: 'c1', label: 'Sample sealed in tamper-proof QR bag', actor: 'Aisha Mohammed · Agent', at: '12 May 2026 · 10:20', txHash: stellarHash('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') },
-      { id: 'c2', label: 'Lab assay completed & signed off', actor: 'Geneva Assay Laboratories', at: '14 May 2026 · 16:05', txHash: stellarHash('a1f5c2b9d8e74630aa12bd3490e7f8c1ee2299aa44bb55cc66dd77ee88ff0011') },
-      { id: 'c3', label: 'Passport approved & anchored', actor: 'GenesysOne Compliance', at: '15 May 2026 · 09:12', txHash: stellarHash('9b74c9897bac770ffc029102a200c5de2dd5f3f1f3a7b9c0e1d2c3b4a5968778') },
+      { id: 'c1', label: 'Sample sealed in tamper-proof QR bag', actor: 'Aisha Mohammed · Agent', at: '12 May 2026 · 10:20', txHash: ethHash('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855') },
+      { id: 'c2', label: 'Lab assay completed & signed off', actor: 'Geneva Assay Laboratories', at: '14 May 2026 · 16:05', txHash: ethHash('a1f5c2b9d8e74630aa12bd3490e7f8c1ee2299aa44bb55cc66dd77ee88ff0011') },
+      { id: 'c3', label: 'Passport approved & anchored', actor: 'GenesysOne Compliance', at: '15 May 2026 · 09:12', txHash: ethHash('9b74c9897bac770ffc029102a200c5de2dd5f3f1f3a7b9c0e1d2c3b4a5968778') },
     ],
-    chain: 'Stellar',
-    txHash: 'stellar:GA7QYNF7SOWQ3GLR2BGMZEHHJ4SE5XKPFJ5MZQ3K8GQ9X2C4LMNOPQR',
+    chain: 'Ethereum',
+    txHash: ethHash('9b74c9897bac770ffc029102a200c5de2dd5f3f1f3a7b9c0e1d2c3b4a5968778'),
     anchoredAt: '15 May 2026 · 09:12',
   },
   {
@@ -430,9 +430,9 @@ export const PASSPORTS: Passport[] = [
       { key: 'processing', date: '06 Jun 2026', location: 'Jos Processing Yard' },
     ],
     custody: [
-      { id: 'c1', label: 'Sample sealed in tamper-proof QR bag', actor: 'Aisha Mohammed · Agent', at: '05 Jun 2026 · 11:40', txHash: stellarHash('44bb55cc66dd77ee88ff0011a1f5c2b9d8e74630aa12bd3490e7f8c1ee2299aa') },
+      { id: 'c1', label: 'Sample sealed in tamper-proof QR bag', actor: 'Aisha Mohammed · Agent', at: '05 Jun 2026 · 11:40', txHash: ethHash('44bb55cc66dd77ee88ff0011a1f5c2b9d8e74630aa12bd3490e7f8c1ee2299aa') },
     ],
-    chain: 'Stellar',
+    chain: 'Ethereum',
   },
   {
     id: 'p3',
@@ -455,8 +455,14 @@ export const PASSPORTS: Passport[] = [
     gps: { lat: 8.7333, lng: 8.55 },
     requestedAt: '26 Jun 2026',
     updatedAt: '26 Jun 2026',
-    chain: 'Stellar',
+    chain: 'Ethereum',
   },
+  marketPassport('GO-SN-2026-000150', 'tin', 'Cassiterite Concentrate', 71.4, '71.4% Sn', 60, 'ton', 'Jos Highland Minerals Ltd', 'Barkin Ladi Tin Field', 'Plateau', { lat: 9.5361, lng: 8.9012 }, 'Alluvial / Open Pit', 'BTH-TIN-0150',
+    [{ label: 'Tin', formula: 'Sn', value: 71.4 }, { label: 'Iron Oxide', formula: 'Fe₂O₃', value: 4.8 }, { label: 'Silica', formula: 'SiO₂', value: 18.2 }, { label: 'Tantalum Oxide', formula: 'Ta₂O₅', value: 0.9 }, { label: 'Moisture', formula: 'H₂O', value: 0.4 }],
+    { overall: 90, environmental: 89, social: 91, governance: 92, supplyChain: 90 }, 9.4, 1.5),
+  marketPassport('GO-PB-2026-000148', 'lead', 'Galena Concentrate', 82.0, '82.0% Pb', 200, 'ton', SELLER_CO, 'Ishiagu Lead Field', 'Ebonyi', { lat: 5.8667, lng: 7.5167 }, 'Open Pit', 'BTH-PBL-0148',
+    [{ label: 'Lead', formula: 'Pb', value: 82.0 }, { label: 'Zinc', formula: 'Zn', value: 6.5 }, { label: 'Silver', formula: 'Ag', value: 0.4 }, { label: 'Silica', formula: 'SiO₂', value: 10.1 }, { label: 'Moisture', formula: 'H₂O', value: 0.5 }],
+    { overall: 87, environmental: 86, social: 88, governance: 89, supplyChain: 87 }, 13.1, 1.6),
   marketPassport('GO-AU-2026-000140', 'gold', 'Gold Concentrate', 91.6, '91.6% Au', 12, 'kg', SELLER_CO, 'Anka Gold Field', 'Zamfara', { lat: 12.1136, lng: 5.9281 }, 'Alluvial', 'BTH-GLD-0140',
     [{ label: 'Gold', formula: 'Au', value: 91.6 }, { label: 'Silver', formula: 'Ag', value: 6.2 }, { label: 'Copper', formula: 'Cu', value: 1.1 }, { label: 'Moisture', formula: 'H₂O', value: 0.3 }],
     { overall: 90, environmental: 88, social: 91, governance: 92, supplyChain: 89 }, 6.1, 1.4),
