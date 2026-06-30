@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { BadgeCheck, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/shell/PageHeader'
 import {
+  Badge,
   ButtonLink,
   Card,
   DataTable,
@@ -9,7 +10,6 @@ import {
   EmptyState,
   KeyValue,
   MineralIcon,
-  StatusPill,
   Tally,
   type Column,
 } from '@/components/ui'
@@ -22,18 +22,13 @@ import { cn } from '@/lib/cn'
 
 const FILTERS: { key: ListingStatus | 'all'; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'draft', label: 'Draft' },
-  { key: 'pending', label: 'Pending' },
-  { key: 'approved', label: 'Approved' },
+  { key: 'approved', label: 'Live' },
   { key: 'completed', label: 'Completed' },
-  { key: 'rejected', label: 'Rejected' },
 ]
 
 const TALLY_META: { key: ListingStatus | 'total'; label: string; accent: string }[] = [
   { key: 'total', label: 'Total', accent: '#023729' },
-  { key: 'pending', label: 'Pending', accent: '#ff8a3c' },
-  { key: 'approved', label: 'Approved', accent: '#34b489' },
-  { key: 'rejected', label: 'Rejected', accent: '#c2362f' },
+  { key: 'approved', label: 'Live', accent: '#34b489' },
   { key: 'completed', label: 'Completed', accent: '#8cd230' },
 ]
 
@@ -100,14 +95,13 @@ export function SellerListings() {
       align: 'right',
       cell: (r) => <span className="tnum font-semibold text-forest">{money(r.priceAmount, r.priceCurrency)}</span>,
     },
-    { key: 'status', header: 'Status', align: 'right', cell: (r) => <StatusPill status={r.status} /> },
   ]
 
   return (
     <div>
       <PageHeader
         title="Listings"
-        subtitle="Publish inventory to the marketplace and track approvals."
+        subtitle="Publish passported inventory straight to the marketplace."
         actions={
           <>
             <ButtonLink to="/seller/qca" variant="secondary" leftIcon={<BadgeCheck size={16} />}>
@@ -175,7 +169,7 @@ export function SellerListings() {
                 <p className="text-lg font-semibold capitalize text-forest">{active.mineral}</p>
                 <p className="text-sm text-forest-400">{active.quantity} {active.unit} · grade {active.grade}%</p>
               </div>
-              <StatusPill status={active.status} />
+              <Badge tone="success" dot className="capitalize">{active.status === 'approved' ? 'Live' : active.status}</Badge>
             </div>
             <dl className="grid grid-cols-2 gap-4">
               <KeyValue label="Listing value" value={money(active.priceAmount, active.priceCurrency)} />
@@ -206,8 +200,8 @@ function EmptyListings({
     return (
       <EmptyState
         variant="inbox"
-        title="No approved minerals yet"
-        description="You don't have any approved minerals in your inventory yet. Add a mineral and complete the vetting process to create your first listing."
+        title="No minerals yet"
+        description="Add a mineral to your inventory — it's sent to compliance for a Digital Passport, then you can publish it to the marketplace."
         action={
           <ButtonLink to="/seller/inventory" leftIcon={<Plus size={16} />}>
             Add mineral
@@ -219,7 +213,7 @@ function EmptyListings({
   return (
     <EmptyState
       title={filter === 'all' ? 'No listings yet' : `No ${filter} listings`}
-      description="Publish a vetted mineral from your inventory to start receiving RFQs."
+      description="Publish a passported mineral from your inventory to start receiving RFQs."
       action={
         <GatedButton leftIcon={<Plus size={16} />} onClick={onCreate}>
           Create listing

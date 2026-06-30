@@ -186,7 +186,7 @@ export function PublicPassport() {
                   </div>
                 </div>
 
-                <div className="mt-6 grid grid-cols-2 gap-4">
+                <div className="mt-6 flex gap-10">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-white/50">Grade</p>
                     <p className="mt-1 text-lg font-semibold">{passport.gradeLabel}</p>

@@ -455,7 +455,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           ...s,
           listings: [item, ...s.listings],
           notifications: [
-            mkNotif('seller', 'system', 'Listing submitted', `Your ${item.mineral} listing is pending approval.`),
+            mkNotif('seller', 'system', 'Listing published', `Your ${item.mineral} listing is now live on the marketplace.`),
             ...s.notifications,
           ],
         })),

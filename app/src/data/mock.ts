@@ -125,11 +125,11 @@ export const INVENTORY: InventoryItem[] = [
 
 export const LISTINGS: Listing[] = [
   { id: 'lst1', mineral: 'tin', grade: 71.4, quantity: 60, unit: 'ton', priceAmount: 28500000, priceCurrency: 'NGN', state: 'Plateau', status: 'approved', certified: true, createdAt: '12 Feb 2025' },
-  { id: 'lst2', mineral: 'columbite', grade: 64.2, quantity: 40, unit: 'ton', priceAmount: 19200000, priceCurrency: 'NGN', state: 'Nasarawa', status: 'pending', certified: false, createdAt: '10 Feb 2025' },
+  { id: 'lst2', mineral: 'columbite', grade: 64.2, quantity: 40, unit: 'ton', priceAmount: 19200000, priceCurrency: 'NGN', state: 'Nasarawa', status: 'approved', certified: false, createdAt: '10 Feb 2025' },
   { id: 'lst3', mineral: 'lithium', grade: 5.8, quantity: 120, unit: 'ton', priceAmount: 8400000, priceCurrency: 'NGN', state: 'Nasarawa', status: 'approved', certified: true, createdAt: '08 Feb 2025' },
   { id: 'lst4', mineral: 'tantalite', grade: 38.5, quantity: 20, unit: 'ton', priceAmount: 41000000, priceCurrency: 'NGN', state: 'Kaduna', status: 'completed', certified: true, createdAt: '02 Feb 2025' },
-  { id: 'lst5', mineral: 'lead', grade: 82.0, quantity: 150, unit: 'ton', priceAmount: 12750000, priceCurrency: 'NGN', state: 'Ebonyi', status: 'draft', certified: false, createdAt: '14 Feb 2025' },
-  { id: 'lst6', mineral: 'gold', grade: 91.6, quantity: 10, unit: 'kg', priceAmount: 96900000, priceCurrency: 'NGN', state: 'Zamfara', status: 'rejected', certified: false, createdAt: '01 Feb 2025' },
+  { id: 'lst5', mineral: 'lead', grade: 82.0, quantity: 150, unit: 'ton', priceAmount: 12750000, priceCurrency: 'NGN', state: 'Ebonyi', status: 'approved', certified: false, createdAt: '14 Feb 2025' },
+  { id: 'lst6', mineral: 'gold', grade: 91.6, quantity: 10, unit: 'kg', priceAmount: 96900000, priceCurrency: 'NGN', state: 'Zamfara', status: 'completed', certified: false, createdAt: '01 Feb 2025' },
 ]
 
 export const SAMPLING_REQUESTS: SamplingRequest[] = [

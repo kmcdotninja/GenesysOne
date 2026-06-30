@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CalendarClock, ChevronRight, ExternalLink, Plus, Share2, ShieldCheck } from 'lucide-react'
+import { CalendarClock, ChevronRight, ExternalLink, Plus, Share2 } from 'lucide-react'
 import { PageHeader } from '@/components/shell/PageHeader'
 import {
   Badge,
-  Button,
   Card,
   DataTable,
   EmptyState,
@@ -19,7 +18,7 @@ import { useStore } from '@/store/AppStore'
 import type { InventoryItem } from '@/data/types'
 
 export function SellerInventory() {
-  const { inventory: allInventory, samplingRequests: allSampling, passports, requestPassport } = useStore()
+  const { inventory: allInventory, samplingRequests: allSampling, passports } = useStore()
   const { verified } = useAccount()
   // No inventory or sampling history until the account is verified.
   const inventory = verified ? allInventory : []
@@ -37,12 +36,6 @@ export function SellerInventory() {
     const url = `${window.location.origin}/passport/${number}`
     navigator.clipboard?.writeText(url)
     toast.success('Public link copied', url)
-  }
-
-  const onRequest = (e: React.MouseEvent, item: InventoryItem) => {
-    stop(e)
-    requestPassport(item.id)
-    toast.success('Passport requested', `${item.mineral} sent to compliance for verification.`)
   }
 
   const columns: Column<InventoryItem>[] = [
@@ -81,23 +74,11 @@ export function SellerInventory() {
       cell: (r) => <span className="text-forest-500">{r.state} · {r.lga}</span>,
     },
     {
-      key: 'vetting',
-      header: 'Review',
-      cell: (r) => <StatusPill status={r.vetting === 'pending' ? 'pending' : 'approved'} />,
-    },
-    {
       key: 'passport',
       header: 'Passport',
       cell: (r) => {
         const p = passportFor(r.id)
-        if (!p) {
-          return (
-            <Button size="sm" variant="secondary" leftIcon={<ShieldCheck size={14} />} onClick={(e) => onRequest(e, r)}>
-              Request
-            </Button>
-          )
-        }
-        if (p.status === 'verified') {
+        if (p?.status === 'verified') {
           return (
             <div className="flex items-center gap-2" onClick={stop}>
               <Badge tone="success" dot>Verified</Badge>
@@ -116,7 +97,9 @@ export function SellerInventory() {
             </div>
           )
         }
-        return <StatusPill status={p.status} />
+        // Every mineral is sent to compliance the moment it's added, so it always
+        // has a review state — no manual "Request" step.
+        return <StatusPill status={p?.status ?? 'pending'} />
       },
     },
     {

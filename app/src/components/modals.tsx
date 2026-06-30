@@ -128,13 +128,20 @@ export function MineralModal({
       store.updateInventory(item.id, fields)
       toast.success('Mineral updated', `${titleCase(mineral)} inventory saved.`)
     } else {
-      store.addInventory({ id: newId('inv'), updatedAt: 'Just now', vetting: 'pending', ...fields })
-      toast.success('Mineral submitted', `${titleCase(mineral)} was added — it's pending review before it can be listed.`)
+      const id = newId('inv')
+      store.addInventory({ id, updatedAt: 'Just now', ...fields })
+      // Adding a mineral sends it straight to compliance for a Digital Passport —
+      // no separate "request" step.
+      store.requestPassport(id)
+      toast.success('Mineral submitted', `${titleCase(mineral)} was sent to compliance for verification.`)
     }
     onClose()
   }
 
   const inReview = !!item && store.vettingQueue.some((v) => v.inventoryId === item.id && v.status === 'pending')
+  // A mineral's compliance state is driven by its Digital Passport — the single
+  // source of truth for both the status pill above and the passport panel below.
+  const passport = item ? store.passports.find((p) => p.inventoryId === item.id && p.status !== 'rejected') : undefined
 
   const submitVetting = () => {
     if (!item) return
@@ -183,14 +190,9 @@ export function MineralModal({
               <p className="mt-0.5 text-xs text-forest-400">Updated {item.updatedAt}</p>
             </div>
             <div className="flex flex-col items-end gap-1.5">
-              {item.vetting === 'approved' ? (
-                <Badge tone="success" dot>Approved</Badge>
-              ) : inReview ? (
-                <Badge tone="warning" dot>In review</Badge>
-              ) : (
-                <Badge tone="neutral" dot>Pending review</Badge>
-              )}
-              <Badge tone="lime" dot className="capitalize">{item.supplyFrequency}</Badge>
+              <StatusPill
+                status={passport?.status ?? (item.vetting === 'approved' ? 'verified' : inReview ? 'in_verification' : 'pending')}
+              />
             </div>
           </div>
 
@@ -239,26 +241,14 @@ export function MineralModal({
                 </div>
               )
             }
-            const passport = store.passports.find((p) => p.inventoryId === item.id && p.status !== 'rejected')
             if (!passport) {
               return (
                 <div className="rounded-2xl border border-dashed border-hair bg-panel/40 p-4 text-center">
                   <ShieldCheck size={22} className="mx-auto text-forest-300" />
-                  <p className="mt-2 text-sm font-medium text-forest">No passport yet</p>
+                  <p className="mt-2 text-sm font-medium text-forest">Sent to compliance</p>
                   <p className="mt-0.5 text-xs text-forest-400">
-                    Send this batch to compliance for on-field verification and a blockchain-anchored passport.
+                    This batch is queued for on-field verification and a blockchain-anchored passport.
                   </p>
-                  <Button
-                    className="mt-3"
-                    size="sm"
-                    leftIcon={<ShieldCheck size={15} />}
-                    onClick={() => {
-                      store.requestPassport(item.id)
-                      toast.success('Passport requested', `${titleCase(item.mineral)} sent to compliance for verification.`)
-                    }}
-                  >
-                    Request passport
-                  </Button>
                 </div>
               )
             }
@@ -503,12 +493,14 @@ export function CreateListingModal({ open, onClose }: { open: boolean; onClose: 
       priceAmount: n(amount) * qty,
       priceCurrency: currency,
       state,
-      status: 'pending',
+      // The mineral already carries a verified passport, so the listing goes
+      // live on the marketplace immediately — no separate approval step.
+      status: 'approved',
       certified: false,
       image,
       createdAt: 'Just now',
     })
-    toast.success('Listing published', `${titleCase(mineral)} listing is pending approval.`)
+    toast.success('Listing published', `${titleCase(mineral)} is now live on the marketplace.`)
     onClose()
   }
 
