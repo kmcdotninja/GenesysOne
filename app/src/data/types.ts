@@ -61,6 +61,8 @@ export type ListingStatus =
   | 'completed'
 export type TradeStatus = 'ongoing' | 'completed' | 'cancelled'
 export type RFQStatus = 'pending' | 'responded' | 'negotiation' | 'accepted' | 'closed'
+/** Outcome of one party accepting the price on the table during a negotiation. */
+export type AgreeResult = 'no_offer' | 'waiting' | 'insufficient' | 'agreed'
 export type SampleStatus = 'pending' | 'shipped' | 'delivered'
 export type TestingStatus =
   | 'incoming'
@@ -215,6 +217,8 @@ export interface RFQ {
   timeline: string
   status: RFQStatus
   quotedPrice?: number
+  /** Roles that have accepted the current price on the table. Both present ⇒ deal. */
+  agreedBy?: Role[]
   messages?: RfqMessage[]
   createdAt: string
 }

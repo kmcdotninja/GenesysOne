@@ -21,6 +21,7 @@ import type {
   MineralVetting,
   MiningSite,
   NotificationItem,
+  AgreeResult,
   Passport,
   RFQ,
   RfqMessage,
@@ -223,7 +224,7 @@ interface StoreApi extends StoreState {
   addRfq: (item: RFQ) => void
   respondToRfq: (id: string, status: RFQStatus, quotedPrice?: number) => void
   sendRfqMessage: (id: string, from: Role, body: string, price?: number) => void
-  agreeRfq: (id: string, acceptedBy: Role) => boolean
+  agreeRfq: (id: string, who: Role) => AgreeResult
   addSampleRequest: (item: SampleRequest) => void
   setSampleStatus: (id: string, status: SampleStatus) => void
   placeOrder: (input: {
@@ -539,6 +540,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
                     ...r,
                     status: r.status === 'closed' ? r.status : 'negotiation',
                     quotedPrice: price ?? r.quotedPrice,
+                    // A new price on the table voids any prior acceptances — both
+                    // sides must accept the latest number.
+                    agreedBy: price != null ? [] : r.agreedBy,
                     messages: [...(r.messages ?? []), msg],
                   }
                 : r,
@@ -547,14 +551,51 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           }
         }),
 
-      agreeRfq: (id, acceptedBy) => {
+      agreeRfq: (id, who) => {
         const rfq = world.rfqs.find((r) => r.id === id)
-        if (!rfq) return false
+        if (!rfq || rfq.status === 'accepted' || rfq.status === 'closed') return 'no_offer'
         // The deal price is the most recent offer on the table (either side).
         const offer = [...(rfq.messages ?? [])].reverse().find((m) => m.price != null && !m.system)?.price ?? rfq.quotedPrice
-        if (!offer || offer <= 0) return false
-        // The buyer funds the agreed amount into escrow.
-        if (offer > world.walletNGN) return false
+        if (!offer || offer <= 0) return 'no_offer'
+
+        const already = rfq.agreedBy ?? []
+        if (already.includes(who)) return 'waiting' // already accepted; still awaiting the other side
+        const nextAgreed: Role[] = [...already, who]
+        const bothAgreed = nextAgreed.includes('buyer') && nextAgreed.includes('seller')
+
+        // First side to accept — record it and wait for the counterparty to confirm.
+        if (!bothAgreed) {
+          const other: Role = who === 'seller' ? 'buyer' : 'seller'
+          patch((s) => {
+            const sysMsg: RfqMessage = {
+              id: newId('rm'),
+              from: who,
+              author: who === 'seller' ? rfq.seller : rfq.buyer,
+              body: `${who === 'seller' ? 'Seller' : 'Buyer'} accepted ${money(offer)} — awaiting the ${other} to confirm.`,
+              price: offer,
+              system: true,
+              at: 'Just now',
+            }
+            const notifs: NotificationItem[] = []
+            if (other === 'buyer') {
+              notifs.push(mkNotif('buyer', 'rfq', 'Price accepted', `${rfq.seller} accepted ${money(offer)} on ${rfq.mineral} — accept to close the deal.`, `/buyer/rfq?focus=${rfq.id}`))
+            } else if (rfq.seller === SELLER_CO) {
+              notifs.push(mkNotif('seller', 'rfq', 'Price accepted', `${rfq.buyer} accepted ${money(offer)} on ${rfq.mineral} — accept to close the deal.`, `/seller/requests?focus=${rfq.id}`))
+            }
+            return {
+              ...s,
+              rfqs: s.rfqs.map((r) =>
+                r.id === id ? { ...r, status: 'negotiation', quotedPrice: offer, agreedBy: nextAgreed, messages: [...(r.messages ?? []), sysMsg] } : r,
+              ),
+              notifications: [...notifs, ...s.notifications],
+            }
+          })
+          return 'waiting'
+        }
+
+        // Both sides have now accepted the same price — the buyer funds escrow.
+        if (offer > world.walletNGN) return 'insufficient'
+        const acceptedBy = who
         patch((s) => {
           const orderNumber = nextOrderNumber()
           const grade =
@@ -582,7 +623,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             id: newId('rm'),
             from: acceptedBy,
             author: acceptedBy === 'seller' ? rfq.seller : rfq.buyer,
-            body: `Agreement reached at ${money(offer)} — order ${orderNumber} created and funded in escrow.`,
+            body: `Both sides agreed at ${money(offer)} — order ${orderNumber} created and funded in escrow.`,
             price: offer,
             system: true,
             at: 'Just now',
@@ -590,7 +631,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           return {
             ...s,
             rfqs: s.rfqs.map((r) =>
-              r.id === id ? { ...r, status: 'accepted', quotedPrice: offer, messages: [...(r.messages ?? []), sysMsg] } : r,
+              r.id === id ? { ...r, status: 'accepted', quotedPrice: offer, agreedBy: nextAgreed, messages: [...(r.messages ?? []), sysMsg] } : r,
             ),
             trades: [trade, ...s.trades],
             walletNGN: s.walletNGN - offer,
@@ -615,7 +656,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             ],
           }
         })
-        return true
+        return 'agreed'
       },
 
       addSampleRequest: (item) =>
