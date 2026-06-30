@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { ArrowRight, ChevronRight, ShieldCheck, Sparkles } from 'lucide-react'
 import { Mark } from '@/components/Logo'
@@ -17,6 +18,13 @@ export function Sidebar({ role }: { role: Role }) {
   const kycStatus = kyc[role]
   const verified = kycStatus === 'verified'
   const { openForm, openStatus } = useKycDrawer()
+
+  // Briefly pop the icon of whichever nav item was just clicked.
+  const [popped, setPopped] = useState<string | null>(null)
+  const pop = (to: string) => {
+    setPopped(to)
+    window.setTimeout(() => setPopped((p) => (p === to ? null : p)), 480)
+  }
 
   return (
     <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-[264px] shrink-0 flex-col gap-4 overflow-y-auto px-4 py-6 lg:flex">
@@ -54,6 +62,7 @@ export function Sidebar({ role }: { role: Role }) {
               key={item.to}
               to={item.to}
               end={item.end}
+              onClick={() => pop(item.to)}
               className={({ isActive }) =>
                 cn(
                   'group relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-150',
@@ -73,6 +82,7 @@ export function Sidebar({ role }: { role: Role }) {
                     className={cn(
                       'shrink-0 transition-colors',
                       isActive ? 'text-forest' : 'text-forest-300 group-hover:text-forest-500',
+                      popped === item.to && 'gx-icon-pop',
                     )}
                   />
                   {item.label}

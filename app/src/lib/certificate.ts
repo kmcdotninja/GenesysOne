@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { QRCodeSVG } from 'qrcode.react'
-import { Mark } from '@/components/Logo'
+import { Logo, Mark } from '@/components/Logo'
 import type { Passport } from '@/data/types'
 
 /**
@@ -13,8 +13,9 @@ export function downloadPassportCertificate(p: Passport) {
   const publicUrl = `${origin}/passport/${p.number}`
   const gps = `${Math.abs(p.gps.lat).toFixed(4)}° ${p.gps.lat >= 0 ? 'N' : 'S'}, ${Math.abs(p.gps.lng).toFixed(4)}° ${p.gps.lng >= 0 ? 'E' : 'W'}`
 
-  // GenesysOne brand mark, inlined so the downloaded file is self-contained.
+  // GenesysOne marks, inlined so the downloaded file is self-contained.
   const markSvg = renderToStaticMarkup(createElement(Mark))
+  const logoSvg = renderToStaticMarkup(createElement(Logo))
   // A coloured, data-URI copy of the mark to drop into the centre of the QR
   // (currentColor → a fixed green so it renders standalone, offline).
   const markDataUri = `data:image/svg+xml,${encodeURIComponent(markSvg.replace(/currentColor/g, '#0c5c43'))}`
@@ -51,8 +52,8 @@ export function downloadPassportCertificate(p: Passport) {
   .qr svg{display:block;width:132px;height:132px}
   .qr-cap{display:block;margin-top:8px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#3d4f48}
   .hero-text{min-width:200px;flex:1}
-  .brand-mark{display:block;color:#a6e64d;margin-bottom:12px}
-  .brand-mark svg{width:34px;height:34px;display:block}
+  .brand-logo{display:block;color:#a6e64d;margin-bottom:14px}
+  .brand-logo svg{height:26px;width:auto;display:block}
   .hero h1{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#a6e64d}
   .hero h2{font-size:24px;margin-top:6px;letter-spacing:-.02em}
   .badge{display:inline-block;margin-top:14px;background:#a6e64d;color:#023729;font-weight:700;font-size:12px;padding:6px 12px;border-radius:999px}
@@ -73,8 +74,8 @@ export function downloadPassportCertificate(p: Passport) {
   <div class="hero">
     <div class="qr">${qrSvg}<span class="qr-cap">Scan to verify</span></div>
     <div class="hero-text">
-      <span class="brand-mark">${markSvg}</span>
-      <h1>GenesysOne · Digital Mineral Passport</h1>
+      <span class="brand-logo">${logoSvg}</span>
+      <h1>Digital Mineral Passport</h1>
       <h2>${p.productName}</h2>
       <span class="badge">${p.status === 'verified' ? 'VERIFIED & AUTHENTIC' : p.status.replace('_', ' ').toUpperCase()}</span>
       <div class="num">${p.number}</div>
