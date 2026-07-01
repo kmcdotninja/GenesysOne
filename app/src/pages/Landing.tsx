@@ -40,7 +40,7 @@ export function Landing() {
               Nigeria's verified solid-minerals marketplace
             </span>
             <h1 className="mt-6 text-[44px] font-semibold leading-[1.05] tracking-[-0.03em] text-forest sm:text-[58px]">
-            Trace, cerify and trade
+            Trace, verify and trade
               <br />
               minerals with{' '}
               <span className="relative whitespace-nowrap">
