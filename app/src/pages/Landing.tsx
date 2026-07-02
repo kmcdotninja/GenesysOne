@@ -37,7 +37,7 @@ export function Landing() {
           <div className="max-w-3xl">
             <span className="inline-flex items-center gap-2 rounded-full border border-hair bg-white px-3 py-1.5 text-[13px] font-semibold text-forest-500 shadow-card">
               <span className="h-2 w-2 rounded-full bg-lime-500" />
-              Nigeria's verified solid-minerals marketplace
+              Nigeria's verified solid minerals marketplace
             </span>
             <h1 className="mt-6 text-[44px] font-semibold leading-[1.05] tracking-[-0.03em] text-forest sm:text-[58px]">
             Trace, verify and trade
