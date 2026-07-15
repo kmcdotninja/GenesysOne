@@ -13,7 +13,6 @@ import {
   Globe,
   Hash,
   Leaf,
-  Link2,
   MapPin,
   Pickaxe,
   Recycle,
@@ -108,10 +107,6 @@ export function PublicPassport() {
   const verified = passport.status === 'verified'
   const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/passport/${passport.number}`
   const chainTx = passport.txHash
-
-  const verifyOnChain = () => {
-    if (chainTx) window.open(`https://etherscan.io/tx/${chainTx}`, '_blank')
-  }
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -338,7 +333,7 @@ export function PublicPassport() {
           <div className="space-y-5">
             {/* QR */}
             <div className={cn(PANEL, 'flex flex-col items-center text-center')}>
-              <SectionTitle>Scan to View Passport</SectionTitle>
+              <SectionTitle>Scan to View DEMO Passport</SectionTitle>
               <div className="rounded-2xl border-2 border-lime-200 p-3">
                 <PassportQR value={publicUrl} />
               </div>
@@ -349,16 +344,10 @@ export function PublicPassport() {
                 <Recycle size={15} className="text-lime" /> REAL-TIME DATA · LIVE UPDATES
               </div>
               {verified && (
-                <div className="mt-3 grid w-full grid-cols-2 gap-2">
-                  <button
-                    onClick={verifyOnChain}
-                    className="flex items-center justify-center gap-1.5 rounded-xl border border-hair px-3 py-2 text-xs font-semibold text-forest-500 transition-colors hover:bg-panel"
-                  >
-                    <Link2 size={14} /> Verify on Ethereum
-                  </button>
+                <div className="mt-3 w-full">
                   <button
                     onClick={() => window.print()}
-                    className="flex items-center justify-center gap-1.5 rounded-xl border border-hair px-3 py-2 text-xs font-semibold text-forest-500 transition-colors hover:bg-panel"
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-hair px-3 py-2 text-xs font-semibold text-forest-500 transition-colors hover:bg-panel"
                   >
                     <Download size={14} /> Certificate
                   </button>
