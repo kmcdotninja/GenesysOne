@@ -399,7 +399,7 @@ export function PublicPassport() {
         </div>
 
         <p className="mt-6 text-center text-xs text-forest-300">
-          No login required · This product is blockchain-certified and tamper-evident · © {new Date().getFullYear()} GenesysOne
+          Demo passport · No login required · This product is blockchain-certified and tamper-evident · © {new Date().getFullYear()} GenesysOne
         </p>
       </div>
     </div>
